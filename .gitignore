@@ -18,3 +18,5 @@ yarn-error.log*
 
 .ipynb_checkpoints/
 Untitled.ipynb
+*pyc
+.vscode
