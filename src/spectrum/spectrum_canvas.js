@@ -1,4 +1,6 @@
 import * as d3 from "d3"
+import * as _ from "lodash"
+
 
 let defaultMargins = {
     top: 10,
@@ -9,6 +11,43 @@ let defaultMargins = {
 
 let defaultWidth = 860 - defaultMargins.left - defaultMargins.right
 let defaultHeight = 400 - defaultMargins.top - defaultMargins.bottom
+
+
+let DEFAULT_COLOR_CYCLE = [
+    "steelblue",
+    "crimson",
+    "lightseagreen",
+    "blueviolet",
+    "midnightblue",
+    "limegreen",
+    "firebrick",
+    "goldenrod"
+]
+
+
+class ColorCycle {
+    constructor(colors) {
+        if(colors === undefined) {
+            colors = Array.from(DEFAULT_COLOR_CYCLE)
+        }
+        this.colors = colors
+        this.index = 0
+        this.length = this.colors.length
+    }
+
+    nextColor() {
+        if(this.index >= this.length){
+            this.index = 0
+        }
+        let color = this.colors[this.index]
+        this.index++
+        return color
+    }
+
+    reset() {
+        this.index = 0
+    }
+}
 
 
 export default class SpectrumCanvas {
@@ -37,6 +76,7 @@ export default class SpectrumCanvas {
         this.idledTimeout = null
 
         this.layers = []
+        this.colorCycle = new ColorCycle()
     }
 
     addLayer(layer) {
@@ -131,12 +171,16 @@ export default class SpectrumCanvas {
                 [0, 0],
                 [this.width, this.height]
             ])
-            .on("end", () => this.updateChart())
+            // throttle this call to avoid one call to updateChart per layer
+            .on("end", _.throttle(() => this.updateChart(), 200, {trailing: false}))
 
 
         this.container.on("dblclick", () => {
+            console.log("Resetting Canvas...")
             this.xScale.domain([this.minMz(), this.maxMz()])
             this.xAxis.transition().call(d3.axisBottom(this.xScale))
+            this.yScale.domain([this.minIntensity(), this.maxIntensity()])
+            this.yAxis.transition().call(d3.axisLeft(this.yScale))
             this.layers.map(layer => layer.redraw(this))
         })
 
@@ -185,18 +229,20 @@ export default class SpectrumCanvas {
 
     updateChart() {
         let extent = d3.event.selection
+        console.log(extent, this.idleTimeout)
         if (!extent) {
             if (!this.idleTimeout) {
                 this.idleTimeout = setTimeout(() => this._idled(), 350)
                 return this.idleTimeout
             }
+            console.log("In updateChart without extent")
             this.xScale.domain([this.minMz(), this.maxMz()])
             this.yScale.domain([this.minIntensity(), this.maxIntensity()])
         } else {
             let minMz = this.xScale.invert(extent[0])
             let maxMz = this.xScale.invert(extent[1])
             let maxIntensity = this.maxIntensityBetween(minMz, maxMz) + 100.0
-
+            console.log("In updateChart with extent", minMz, maxMz, maxIntensity)
             this.xScale.domain([minMz, maxMz])
             this.yScale.domain([0, maxIntensity])
             // This remove the grey brush area as soon as the selection has been done
@@ -208,6 +254,7 @@ export default class SpectrumCanvas {
     }
 
     draw() {
+        // this.colorCycle.reset()
         this.layers.map(layer => layer.initArtist(this))
     }
 

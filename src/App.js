@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import './App.css';
-import {ProfileLayer} from './spectrum/spectrum_layers.js'
+import {ProfileLayer, PointLayer} from './spectrum/spectrum_layers.js'
 import SpectrumCanvasComponent from "./spectrum/component.js"
 
 
@@ -15,6 +15,9 @@ class App extends Component {
   }
 
   getScan(scanIndex) {
+    if(isNaN(scanIndex)) {
+      return
+    }
     let scanId = `controllerType=0 controllerNumber=1 scan=${scanIndex + 1}`
     let request = fetch(`http://localhost:5000/scan/${this.state.dataFileKey}/${scanId}`)
     request.then(response => {
@@ -24,6 +27,10 @@ class App extends Component {
       console.log(layer)
       let newState = Object.assign({}, this.state)
       newState.layers = [layer]
+      if(data.points !== undefined){
+        let pointLayer = new PointLayer(data.points)
+        newState.layers.push(pointLayer)
+      }
       newState.scanId = scanId
       console.log("newState", newState)
       this.setState(newState)
@@ -32,10 +39,9 @@ class App extends Component {
 
   render() {
     const {layers} = this.state
-    const self = this
     return (
       <div className="App">
-        <h1>Hello, React</h1>
+        <h3>{this.state.scanId === null ? "Hello, React" : this.state.scanId}</h3>
         <SpectrumCanvasComponent layers={layers}/>
         <div>
           <button onClick={() => this.getScan(12679 + 1)}>

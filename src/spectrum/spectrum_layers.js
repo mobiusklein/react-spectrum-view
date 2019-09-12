@@ -1,9 +1,13 @@
 import * as d3 from "d3";
+import * as _ from "lodash"
 
+
+const defaultColor = 'steelblue'
 
 export class DataLayer {
     constructor(length) {
         this.length = length
+        this._color = null
     }
 
     [Symbol.iterator]() {
@@ -20,6 +24,18 @@ export class DataLayer {
             }
         }
         return iterator
+    }
+
+    get color(){
+        return this._color === null ? defaultColor : this._color
+    }
+
+    set color(value) {
+        this._color = value
+    }
+
+    get layerType() {
+        return 'data'
     }
 
     asArray() {
@@ -88,6 +104,7 @@ export class DataLayer {
     }
 
     onBrush(brush) {
+        console.log("onBrush", this)
         this.line.select(".brush").call(brush.move, null)
     }
 
@@ -101,20 +118,28 @@ export class DataLayer {
         this.path.remove()
     }
 
-    initArtist(canvas) {
-        this.line = canvas.container.append("g").attr("clip-path", "url(#clip)")
-        let points = this.asArray()
-
-        this.path = this.line.append("path").datum(points).attr("class", "line").attr("fill", "none")
-            .attr("stroke", "steelblue").attr("stroke-width", 1.5)
-
+    buildPath(canvas) {
         let path = d3.line().x(
             d => canvas.xScale(d.mz)).y(
                 d => canvas.yScale(d.intensity))
+        return path
+    }
 
-        this.path.attr("d", path)
+    _makeData() {
+        return this.asArray()
+    }
 
-        this.line.append("g")
+    initArtist(canvas) {
+        this.line = canvas.container.append("g").attr("clip-path", "url(#clip)")
+        this.color = canvas.colorCycle.nextColor()
+        let points = this._makeData()
+
+        this.path = this.line.append("path").datum(points).attr("class", `line ${this.layerType}`).attr("fill", "none")
+            .attr("stroke", this.color).attr("stroke-width", 1.5)
+
+        this.path.attr("d", this.buildPath(canvas))
+
+        this.brushPatch = this.line.append("g")
             .attr("class", "brush")
             .call(canvas.brush);
     }
@@ -139,6 +164,10 @@ export class ProfileLayer extends DataLayer {
     slice(begin, end) {
         return new ProfileLayer(this.mz.slice(begin, end), this.intensity.slice(begin, end))
     }
+
+    get layerType() {
+        return 'profile-layer'
+    }
 }
 
 
@@ -153,7 +182,28 @@ export class PointLayer extends DataLayer {
         return this.points[i]
     }
 
+    get layerType() {
+        return 'centroid-layer'
+    }
+
     slice(begin, end) {
         return new PointLayer(this.points.slice(begin, end))
     }
+
+    _makeData() {
+        let result = []
+        for(let point of this){
+            let beforePoint = Object.assign({}, point)
+            let afterPoint = Object.assign({}, point)
+            beforePoint.mz -= 1e-6
+            beforePoint.intensity = -1
+            result.push(beforePoint)
+            result.push(point)
+            afterPoint.mz += 1e-6
+            afterPoint.intensity = -1
+            result.push(afterPoint)
+        }
+        return result
+    }
+
 }
