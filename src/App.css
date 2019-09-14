@@ -23,6 +23,10 @@
   height: 400px;
 }
 
+.scan-record {
+  font-size: 0.8em;
+}
+
 .scan-record.ms-level-1 {
   background: rgb(218, 238, 238);
 }
@@ -44,6 +48,6 @@
 
 .scan-attrib {
   flex: 1;
-  padding-top: 2px;
-  padding-bottom: 2px;
+  padding-top: 1px;
+  padding-bottom: 1px;
 }

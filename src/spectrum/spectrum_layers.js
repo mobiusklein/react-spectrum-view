@@ -43,11 +43,17 @@ export class DataLayer {
     }
 
     maxMz() {
+        if (this.length == 0) {
+            return 0
+        }
         const point = this.get(this.length - 1)
         return point.mz
     }
 
     minMz() {
+        if(this.length == 0){
+            return 0
+        }
         const point = this.get(0)
         return point.mz
     }
@@ -81,10 +87,62 @@ export class DataLayer {
             let value = this.get(mid).mz
             let diff = value - mz
             if (Math.abs(diff) < 1e-3) {
-                return mid
+                let bestIndex = mid
+                let bestError = Math.abs(diff)
+                let i = mid
+                while(i > -1) {
+                    value = this.get(i).mz
+                    diff = Math.abs(value - mz)
+                    if(diff < bestError) {
+                        bestIndex = i
+                        bestError = diff
+                    } else {
+                        break
+                    }
+                    i--;
+                }
+                i = mid + 1
+                while(i < this.length) {
+                    value = this.get(i).mz
+                    diff = Math.abs(value - mz)
+                    if (diff < bestError) {
+                        bestIndex = i
+                        bestError = diff
+                    } else {
+                        break
+                    }
+                    i++;
+                }
+                return bestIndex
             }
             else if (hi - lo === 1) {
-                return mid
+                let bestIndex = mid
+                let bestError = Math.abs(diff)
+                let i = mid
+                while (i > -1) {
+                    value = this.get(i).mz
+                    diff = Math.abs(value - mz)
+                    if (diff < bestError) {
+                        bestIndex = i
+                        bestError = diff
+                    } else {
+                        break
+                    }
+                    i--;
+                }
+                i = mid + 1
+                while (i < this.length) {
+                    value = this.get(i).mz
+                    diff = Math.abs(value - mz)
+                    if (diff < bestError) {
+                        bestIndex = i
+                        bestError = diff
+                    } else {
+                        break
+                    }
+                    i++;
+                }
+                return bestIndex
             }
             else if (diff > 0) {
                 hi = mid
@@ -106,6 +164,10 @@ export class DataLayer {
     onBrush(brush) {
         console.log("onBrush", this)
         this.line.select(".brush").call(brush.move, null)
+    }
+
+    onHover(canvas, cursorInfo) {
+        return
     }
 
     redraw(canvas) {
@@ -187,6 +249,7 @@ export class PointLayer extends DataLayer {
         this.points = points
         this.length = points.length
         this.line = null
+        this.label = null
     }
 
     get(i) {
@@ -217,10 +280,44 @@ export class PointLayer extends DataLayer {
         return result
     }
 
+    onHover(canvas, cursorInfo) {
+        let mz = cursorInfo.mz
+        let index = this.searchMz(mz)
+        let peak = this.get(index)
+        if(peak === undefined) {
+            return
+        }
+        if(Math.abs(peak.mz - mz) > 0.3){
+            if(this.label !== null){
+                this.label.remove()
+                this.label = null
+            }
+            return
+        }
+        let mzPosition = canvas.xScale(peak.mz)
+        let intensityPosition = canvas.yScale(peak.intensity)
+        if(this.label !== null) {
+            this.label.remove()
+        }
+        this.label = canvas.container.append('g')
+            .attr("transform", `translate(${mzPosition},${intensityPosition - 10})`)
+        this.label.append("text").text(peak.mz.toFixed(3))
+            .style("text-anchor", "middle")
+            .attr("class", "cursor-label")
+    }
 }
 
 
-export class PrecursorPeakLayer extends PointLayer {
+class AbstractPointLayer extends PointLayer {
+
+    slice(begin, end) {
+        return new PointLayer([])
+    }
+
+}
+
+
+export class PrecursorPeakLayer extends AbstractPointLayer {
     constructor(peak, metadata){
         super([peak], metadata)
         this.mz = peak.mz
@@ -243,7 +340,7 @@ export class PrecursorPeakLayer extends PointLayer {
     }
 }
 
-export class IsolationWindowLayer extends PointLayer {
+export class IsolationWindowLayer extends AbstractPointLayer {
     constructor(windows, height, metadata) {
         super(IsolationWindowLayer._splitWindows(windows, height), metadata)
         this.windows = windows
@@ -256,6 +353,10 @@ export class IsolationWindowLayer extends PointLayer {
 
     get layerType() {
         return 'isolation-window-layer'
+    }
+
+    onHover(canvas, cursorInfo){
+        return
     }
 
     static _splitWindows(windows, height) {

@@ -223,8 +223,11 @@ export default class SpectrumCanvas {
             let mouse = d3.mouse(this)
             let mzLabel = self.xScale.invert(mouse[0])
             let intensityLabel = self.yScale.invert(mouse[1])
-            self.pointerMZLabel.text(`m/z = ${mzLabel.toFixed(3)}`)
-            self.pointerIntensityLabel.text(`Int. = ${intensityLabel.toExponential(2)}`)
+            self.pointerMZLabel.text(`m/z = ${mzLabel > 0 ? mzLabel.toFixed(3) : '-'}`)
+            self.pointerIntensityLabel.text(`Int. = ${intensityLabel > 0 ? intensityLabel.toExponential(2) : '-'}`)
+            for(let layer of self.layers){
+                layer.onHover(self, {mz: mzLabel, intensity: intensityLabel})
+            }
         })
     }
 
