@@ -47,17 +47,19 @@ def get_index(key):
     path = key_index[key]
     index = metadata_index[(path)]
     if request.method == "GET":
-        ms1_ids = tuple(index.ms1_ids)
-        msn_ids = tuple(index.msn_ids)
-        key_index = []
-        for key in ms1_ids:
-            scan_info = index[key_index]
-            print(scan_info)
-            break
-        return jsonify(ms1_ids=ms1_ids, msn_ids=msn_ids)
-    elif request.method == "POST":
-        start_index = int(request.values['start'])
-        end_index = int(request.values['end'])
+        records = []
+        for key, value in index.ms1_ids.items():
+            rec = value.to_dict()
+            rec['scan_id'] = key
+            rec['ms_level'] = 1
+            records.append(rec)
+        for key, value in index.msn_ids.items():
+            rec = value.to_dict()
+            rec['scan_id'] = key
+            rec.setdefault('ms_level', 2)
+            records.append(rec)
+        records.sort(key=lambda x: x.get('scan_time', x['scan_id']))
+        return jsonify(records=records, scan_count=len(records))
 
 
 @app.route("/scan/<key>/<string:scan_id>", methods=["GET", "POST"])
@@ -73,6 +75,38 @@ def get_scan(key, scan_id):
         points = []
         for peak in scan.peak_set:
             points.append({'mz': peak.mz, "intensity": peak.intensity})
+        if scan.ms_level > 1:
+            precursor = scan.precursor_information
+            isolation_window = None
+            if precursor is not None:
+                precursor = {
+                    "mz": precursor.mz,
+                    "charge": precursor.charge,
+                    "intensity": precursor.intensity,
+                    "scan_id": scan.id,
+                }
+        else:
+            isolation_window = []
+            precursor_ions = []
+            bunch = next(reader.start_from_scan(scan_id))
+            for product in bunch.products:
+                window = product.isolation_window
+                if window is not None:
+                    isolation_window.append({
+                        "lower_bound": window.lower_bound,
+                        "upper_bound": window.upper_bound
+                    })
+                precursor = product.precursor_information
+                if precursor is not None:
+                    precursor_ions.append({
+                        "mz": precursor.mz,
+                        "charge": precursor.charge,
+                        "intensity": precursor.intensity,
+                        "scan_id": product.id,
+                    })
+            precursor = precursor_ions
+
+
     response = jsonify(
         scan_id=scan_id,
         mz=mz_array.tolist(),
@@ -81,6 +115,8 @@ def get_scan(key, scan_id):
         scan_time=scan.scan_time,
         ms_level=scan.ms_level,
         is_profile=scan.is_profile,
+        precursor_information=precursor,
+        isolation_window=isolation_window,
     )
     return response
 

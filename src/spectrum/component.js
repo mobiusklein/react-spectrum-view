@@ -11,7 +11,6 @@ export default class SpectrumCanvasComponent extends Component {
     }
 
     componentDidMount() {
-        console.log("componentDidMount", this.props.layers)
         this.state.canvas.addLayers(this.props.layers)
         this.state.canvas.render()
     }

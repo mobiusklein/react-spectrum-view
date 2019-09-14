@@ -1,5 +1,5 @@
 import * as d3 from "d3"
-import * as _ from "lodash"
+import _ from "lodash"
 
 
 let defaultMargins = {
@@ -9,19 +9,19 @@ let defaultMargins = {
     left: 90
 }
 
-let defaultWidth = 860 - defaultMargins.left - defaultMargins.right
-let defaultHeight = 400 - defaultMargins.top - defaultMargins.bottom
+let defaultWidth = 1200 - defaultMargins.left - defaultMargins.right
+let defaultHeight = 500 - defaultMargins.top - defaultMargins.bottom
 
 
 let DEFAULT_COLOR_CYCLE = [
     "steelblue",
-    "crimson",
-    "lightseagreen",
     "blueviolet",
     "midnightblue",
+    "lightseagreen",
     "limegreen",
+    "goldenrod",
     "firebrick",
-    "goldenrod"
+    "crimson",
 ]
 
 
@@ -68,6 +68,12 @@ export default class SpectrumCanvas {
         this.yScale = null
         this.xAxis = null
         this.yAxis = null
+
+        this.xLabel = null
+        this.yLabel = null
+
+        this.pointerMZLabel = null
+        this.pointerIntensityLabel = null
 
         this.clip = null
 
@@ -150,7 +156,7 @@ export default class SpectrumCanvas {
             .domain([this.minMz(), this.maxMz()])
             .range([0, this.width])
         this.yScale = d3.scaleLinear()
-            .domain([this.minIntensity(), this.maxIntensity()])
+            .domain([this.minIntensity(), this.maxIntensity() * 1.05])
             .range([this.height, 0])
         this.xAxis = this.container.append("g")
             .attr('transform', `translate(0, ${this.height})`)
@@ -179,7 +185,7 @@ export default class SpectrumCanvas {
             console.log("Resetting Canvas...")
             this.xScale.domain([this.minMz(), this.maxMz()])
             this.xAxis.transition().call(d3.axisBottom(this.xScale))
-            this.yScale.domain([this.minIntensity(), this.maxIntensity()])
+            this.yScale.domain([this.minIntensity(), this.maxIntensity() * 1.05])
             this.yAxis.transition().call(d3.axisLeft(this.yScale))
             this.layers.map(layer => layer.redraw(this))
         })
@@ -198,6 +204,28 @@ export default class SpectrumCanvas {
                 (this.height + this.margins.top + 20) + ")")
             .style("text-anchor", "middle")
             .text("m/z");
+
+        this.pointerMZLabel = this.container.append("text")
+            .attr("transform", `translate(${this.width * 0.01},${this.height * 0.02})`)
+            .style("text-anchor", "left")
+            .attr("class", "cursor-label")
+            .text("")
+
+        this.pointerIntensityLabel = this.container.append("text")
+            .attr("transform", `translate(${this.width * 0.01},${this.height * 0.06})`)
+            .style("text-anchor", "left")
+            .attr("class", "cursor-label")
+            .text("")
+
+        let self = this
+        this.container.on("mousemove", function() {
+            // Binds the coordinates within `this`, the component containing the event
+            let mouse = d3.mouse(this)
+            let mzLabel = self.xScale.invert(mouse[0])
+            let intensityLabel = self.yScale.invert(mouse[1])
+            self.pointerMZLabel.text(`m/z = ${mzLabel.toFixed(3)}`)
+            self.pointerIntensityLabel.text(`Int. = ${intensityLabel.toExponential(2)}`)
+        })
     }
 
     remove() {
@@ -206,6 +234,8 @@ export default class SpectrumCanvas {
         this.xAxis.remove()
         this.xLabel.remove()
         this.yLabel.remove()
+        this.pointerMZLabel.remove()
+        this.pointerIntensityLabel.remove()
         this.layers.map((layer) => layer.remove())
         this.container.exit().remove()
     }
@@ -237,14 +267,14 @@ export default class SpectrumCanvas {
             }
             console.log("In updateChart without extent")
             this.xScale.domain([this.minMz(), this.maxMz()])
-            this.yScale.domain([this.minIntensity(), this.maxIntensity()])
+            this.yScale.domain([this.minIntensity(), this.maxIntensity() * 1.05])
         } else {
             let minMz = this.xScale.invert(extent[0])
             let maxMz = this.xScale.invert(extent[1])
             let maxIntensity = this.maxIntensityBetween(minMz, maxMz) + 100.0
             console.log("In updateChart with extent", minMz, maxMz, maxIntensity)
             this.xScale.domain([minMz, maxMz])
-            this.yScale.domain([0, maxIntensity])
+            this.yScale.domain([0, maxIntensity * 1.05])
             // This remove the grey brush area as soon as the selection has been done
             this.layers.map(layer => layer.onBrush(this.brush))
         }
@@ -254,9 +284,8 @@ export default class SpectrumCanvas {
     }
 
     draw() {
-        // this.colorCycle.reset()
+        this.colorCycle.reset()
         this.layers.map(layer => layer.initArtist(this))
     }
-
 
 }

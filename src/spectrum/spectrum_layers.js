@@ -1,12 +1,12 @@
 import * as d3 from "d3";
-import * as _ from "lodash"
+import _ from "lodash"
 
 
 const defaultColor = 'steelblue'
 
 export class DataLayer {
-    constructor(length) {
-        this.length = length
+    constructor(metadata) {
+        this.metadata = metadata
         this._color = null
     }
 
@@ -129,13 +129,22 @@ export class DataLayer {
         return this.asArray()
     }
 
+    styleArtist(path) {
+        return path.attr(
+            "stroke", this.color).attr(
+            "stroke-width", 1.5).attr(
+                "fill", "none")
+    }
+
     initArtist(canvas) {
         this.line = canvas.container.append("g").attr("clip-path", "url(#clip)")
         this.color = canvas.colorCycle.nextColor()
         let points = this._makeData()
 
-        this.path = this.line.append("path").datum(points).attr("class", `line ${this.layerType}`).attr("fill", "none")
-            .attr("stroke", this.color).attr("stroke-width", 1.5)
+        this.path = this.styleArtist(
+            this.line.append("path").datum(points).attr(
+                "class", `line ${this.layerType}`))
+
 
         this.path.attr("d", this.buildPath(canvas))
 
@@ -147,9 +156,10 @@ export class DataLayer {
 
 
 export class ProfileLayer extends DataLayer {
-    constructor(mz, intensity) {
-        super(mz.length)
+    constructor(mz, intensity, metadata) {
+        super(metadata)
         this.mz = mz
+        this.length = mz.length
         this.intensity = intensity
         this.line = null
     }
@@ -172,9 +182,10 @@ export class ProfileLayer extends DataLayer {
 
 
 export class PointLayer extends DataLayer {
-    constructor(points) {
-        super(points.length)
+    constructor(points, metadata) {
+        super(metadata)
         this.points = points
+        this.length = points.length
         this.line = null
     }
 
@@ -206,4 +217,59 @@ export class PointLayer extends DataLayer {
         return result
     }
 
+}
+
+
+export class PrecursorPeakLayer extends PointLayer {
+    constructor(peak, metadata){
+        super([peak], metadata)
+        this.mz = peak.mz
+        this.intensity = peak.intensity
+        this.charge = peak.charge
+    }
+
+    maxIntensity() {
+        return 1
+    }
+
+    get layerType() {
+        return 'precursor-layer'
+    }
+
+    styleArtist(path) {
+        let gapSize = 10
+        let dashSize = 5
+        return super.styleArtist(path).attr("stroke-dasharray", `${dashSize} 1 ${gapSize}`)
+    }
+}
+
+export class IsolationWindowLayer extends PointLayer {
+    constructor(windows, height, metadata) {
+        super(IsolationWindowLayer._splitWindows(windows, height), metadata)
+        this.windows = windows
+        this.height = height
+    }
+
+    maxIntensity() {
+        return 1
+    }
+
+    get layerType() {
+        return 'isolation-window-layer'
+    }
+
+    static _splitWindows(windows, height) {
+        let points = []
+        for(let window of windows) {
+            points.push({mz: window.lower_bound, intensity: height})
+            points.push({mz: window.upper_bound, intensity: height})
+        }
+        return points
+    }
+
+    styleArtist(path) {
+        let gapSize = 5
+        let dashSize = 5
+        return super.styleArtist(path).attr("stroke-dasharray", `${dashSize} ${gapSize}`)
+    }
 }

@@ -2,3 +2,48 @@
   text-align: center;
 }
 
+.cursor-label {
+  font-size: 0.8em;
+}
+
+.scan-list-container {
+  width: 80%;
+  margin-left: 10%;
+  margin-right: 10%;
+}
+
+.scan-record-header {
+  display: block;
+}
+
+.scan-record-body {
+  display: block;
+  flex: 1;
+  overflow-y: scroll;
+  height: 400px;
+}
+
+.scan-record.ms-level-1 {
+  background: rgb(218, 238, 238);
+}
+.scan-record.ms-level-n {
+  background: rgb(240, 239, 239);
+}
+
+.scan-record:hover {
+  background: lightskyblue;
+}
+
+.scan-record-body tr, .scan-record-header tr {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid black;
+}
+
+.scan-attrib {
+  flex: 1;
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
