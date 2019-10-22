@@ -6,12 +6,18 @@ from threading import RLock, Thread
 
 from flask import Flask, g, request, abort, jsonify
 
-
+import ms_deisotope
 from ms_deisotope import MSFileLoader
 from ms_deisotope.feature_map import ExtendedScanIndex, quick_index
 
 
 app = Flask(__name__)
+
+averagine_map = {
+    "peptide": ms_deisotope.peptide,
+    "glycan": ms_deisotope.glycan,
+    "glycopeptide": ms_deisotope.glycopeptide
+}
 
 key_index = {}
 metadata_index = {}
@@ -67,6 +73,8 @@ def get_index(key):
 def get_scan(key, scan_id):
     path = key_index[key]
     reader, lock = reader_index[path]
+    values = request.values
+    print(values)
     with lock:
         scan = reader.get_scan_by_id(scan_id)
         mz_array = scan.arrays.mz
@@ -85,6 +93,10 @@ def get_scan(key, scan_id):
                     "intensity": precursor.intensity,
                     "scan_id": scan.id,
                 }
+            averagine_type = averagine_map.get(
+                values.get("msn-averagine", "glycopeptide"),
+                ms_deisotope.glycopeptide)
+            truncate_to = 0.8
         else:
             isolation_window = []
             precursor_ions = []
@@ -104,14 +116,29 @@ def get_scan(key, scan_id):
                         "intensity": precursor.intensity,
                         "scan_id": product.id,
                     })
+            averagine_type = averagine_map.get(
+                values.get("ms1-averagine", "glycopeptide"),
+                ms_deisotope.glycopeptide)
             precursor = precursor_ions
-
+            truncate_to = 0.95
+        scan.deconvolute(averagine=averagine_type, truncate_to=truncate_to)
+        deconvoluted_points = []
+        for peak in scan.deconvoluted_peak_set:
+            deconvoluted_points.append({
+                "mz": peak.mz,
+                "charge": peak.charge,
+                "intensity": peak.intensity,
+                "envelope": [
+                    {'mz': e.mz, 'intensity': e.intensity} for e in peak.envelope
+                ]
+            })
 
     response = jsonify(
         scan_id=scan_id,
         mz=mz_array.tolist(),
         intensity=intensity_array.tolist(),
         points=points,
+        deconvoluted_points=deconvoluted_points,
         scan_time=scan.scan_time,
         ms_level=scan.ms_level,
         is_profile=scan.is_profile,

@@ -11,8 +11,25 @@ class App extends Component {
     this.state = {
       layers: [],
       dataFileKey: 0,
-      scanId: null
+      scanId: null,
+      ms1Averagine: "peptide",
+      msnAveragine: "peptide"
     }
+
+    this.ms1AveragineChanged = this.ms1AveragineChanged.bind(this)
+    this.msnAveragineChanged = this.msnAveragineChanged.bind(this)
+  }
+
+  ms1AveragineChanged(event) {
+    let newState = Object.assign({}, this.state)
+    newState.ms1Averagine = event.target.value
+    this.setState(newState)
+  }
+
+  msnAveragineChanged(event) {
+    let newState = Object.assign({}, this.state)
+    newState.msnAveragine = event.target.value
+    this.setState(newState)
   }
 
   getScan(scanIndex, scanId) {
@@ -22,7 +39,13 @@ class App extends Component {
       }
       scanId = `controllerType=0 controllerNumber=1 scan=${scanIndex + 1}`
     }
-    let request = fetch(`http://localhost:5000/scan/${this.state.dataFileKey}/${scanId}`)
+    let formData = new FormData()
+    formData.set("ms1-averagine", this.state.ms1Averagine)
+    formData.set("msn-averagine", this.state.msnAveragine)
+    let request = fetch(`http://localhost:5000/scan/${this.state.dataFileKey}/${scanId}`, {
+      method: "POST",
+      body: formData
+    })
     request.then(response => {
       return response.json()
     }).then(data => {
@@ -76,10 +99,23 @@ class App extends Component {
       <div className="App">
         <h3>{this.state.scanId === null ? "Hello, React" : this.state.scanId}</h3>
         <SpectrumCanvasComponent layers={layers}/>
-        <div>
-          <button onClick={() => this.getScan(12679 + 1)}>
-            Load Test Scan
-          </button>
+        <div className="spectrum-canvas-controls">
+          <div>
+            <label htmlFor="ms1-averagine">MS<sup></sup> Averagine Model: </label>
+            <select name="ms1-averagine" value={this.state.ms1Averagine} onChange={this.ms1AveragineChanged}>
+              <option value="peptide">Peptide</option>
+              <option value="glycan">Glycan</option>
+              <option value="glycopeptide">Glycopeptide</option>
+            </select>
+          </div>
+          <div>
+            <label htmlFor="msn-averagine">MS<sup>n</sup> Averagine Model: </label>
+            <select name="msn-averagine" value={this.state.msnAveragine} onChange={this.msnAveragineChanged}>
+              <option value="peptide">Peptide</option>
+              <option value="glycan">Glycan</option>
+              <option value="glycopeptide">Glycopeptide</option>
+            </select>
+          </div>
         </div>
         <div>
           <input type="text" name='scan-index' placeholder="Scan Index"

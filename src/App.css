@@ -6,6 +6,24 @@
   font-size: 0.8em;
 }
 
+
+/* control widgets */
+
+.spectrum-canvas-controls {
+  display: flex;
+  margin-left: 25%;
+  margin-right: 25%;
+}
+
+.spectrum-canvas-controls div {
+  flex: 1;
+  margin-top: 3px;
+  margin-bottom: 3px;
+}
+
+/* scan-lis */
+
+
 .scan-list-container {
   width: 80%;
   margin-left: 10%;
