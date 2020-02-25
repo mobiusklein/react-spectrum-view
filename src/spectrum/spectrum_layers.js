@@ -308,6 +308,64 @@ export class PointLayer extends DataLayer {
 }
 
 
+let neutralMass = (mz, charge) => {
+    return (mz * Math.abs(charge)) - charge * 1.007
+}
+
+
+export class DeconvolutedLayer extends PointLayer {
+    constructor(points, metadata) {
+        super(points, metadata)
+        this.patternContainer = null
+    }
+
+    onHover(canvas, cursorInfo){
+        super.onHover(canvas, cursorInfo)
+        let mz = cursorInfo.mz
+        let index = this.searchMz(mz)
+        let peak = this.get(index)
+        console.log("Deconvoluted", peak)
+        if (peak === undefined) {
+            return
+        }
+        if (Math.abs(peak.mz - mz) > 1.5) {
+            if (this.patternContainer !== null) {
+                this.patternContainer.remove()
+                this.patternContainer = null
+            }
+            console.log("Too far away")
+            return
+        }
+        let averageMz = 0
+        let totalIntensity = 0
+        let apexPosition = 0
+        let apexIntensity = 0
+        let i = 0
+        for(let envelopePoint of peak.envelope) {
+            averageMz += envelopePoint.mz * envelopePoint.intensity
+            totalIntensity += envelopePoint.intensity
+            if(envelopePoint.intensity > apexIntensity){
+                apexIntensity = envelopePoint.intensity
+                apexPosition = i
+            }
+            i++
+        }
+        let apexMz = averageMz / totalIntensity
+        let apexMzPosition = canvas.xScale(apexMz)
+        let apexIntensityPosition = canvas.yScale(apexIntensity)
+        console.log(this, peak, apexMz, apexIntensity)
+        if (this.patternContainer !== null) {
+            this.patternContainer.remove()
+        }
+        this.patternContainer = canvas.container.append('g')
+            .attr("transform", `translate(${apexMzPosition},${apexIntensityPosition - 10})`)
+        this.patternContainer.append("text").text(neutralMass(peak.mz, peak.charge).toFixed(3) + `, ${peak.charge}`)
+            .style("text-anchor", "middle")
+            .attr("class", "cursor-label")
+    }
+}
+
+
 class AbstractPointLayer extends PointLayer {
 
     slice(begin, end) {
@@ -339,6 +397,7 @@ export class PrecursorPeakLayer extends AbstractPointLayer {
         return super.styleArtist(path).attr("stroke-dasharray", `${dashSize} 1 ${gapSize}`)
     }
 }
+
 
 export class IsolationWindowLayer extends AbstractPointLayer {
     constructor(windows, height, metadata) {

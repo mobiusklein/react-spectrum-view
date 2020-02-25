@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import './App.css';
-import {ProfileLayer, PointLayer, PrecursorPeakLayer, IsolationWindowLayer} from './spectrum/spectrum_layers.js'
+import {ProfileLayer, PointLayer, PrecursorPeakLayer, IsolationWindowLayer, DeconvolutedLayer} from './spectrum/spectrum_layers.js'
 import SpectrumCanvasComponent from "./spectrum/component.js"
 import ScanList from "./scan_list/scan_list"
 
@@ -86,6 +86,10 @@ class App extends Component {
           isolationLayer = new IsolationWindowLayer(data.isolation_window, newState.layers[0].maxIntensity())
         }
         newState.layers.push(isolationLayer)
+      }
+      if (data.deconvoluted_points !== null){
+        let deconvolutedPeaks = new DeconvolutedLayer(data.deconvoluted_points)
+        newState.layers.push(deconvolutedPeaks)
       }
       newState.scanId = scanId
       console.log("newState", newState)
