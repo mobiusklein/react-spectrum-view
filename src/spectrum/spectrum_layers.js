@@ -247,6 +247,16 @@ export class PointLayer extends DataLayer {
     constructor(points, metadata) {
         super(metadata)
         this.points = points
+        this.points.sort((a, b) => {
+            if (a.mz < b.mz) {
+                return -1
+            }
+            else if(a.mz > b.mz) {
+                return 1
+            } else {
+                return 0
+            }
+        })
         this.length = points.length
         this.line = null
         this.label = null
@@ -361,7 +371,7 @@ export class DeconvolutedLayer extends PointLayer {
             .attr("transform", `translate(${apexMzPosition},${apexIntensityPosition - 10})`)
         this.patternContainer.append("text").text(neutralMass(peak.mz, peak.charge).toFixed(3) + `, ${peak.charge}`)
             .style("text-anchor", "middle")
-            .attr("class", "cursor-label")
+            .attr("class", "cursor-label envelope-label")
     }
 }
 
