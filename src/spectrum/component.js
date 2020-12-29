@@ -1,33 +1,36 @@
-import React, {Component} from "react"
-import SpectrumCanvas from "./spectrum_canvas"
+import * as React from "react";
+import SpectrumCanvas from "./spectrum_canvas";
 
+import "./spectrum_canvas.css";
 
-export default class SpectrumCanvasComponent extends Component {
-    constructor(props) {
-        super(props)
-        this.state = {
-            "canvas": new SpectrumCanvas("#spectrum-canvas-container"),
-        }
+export default function SpectrumCanvasComponent({ config, spectrumData }) {
+  const canvasHolder = React.useRef(null);
+  const [canvas, setCanvas] = React.useState(null);
+
+  React.useLayoutEffect(() => {
+    if (canvasHolder.current) {
+      setCanvas(new SpectrumCanvas(`#${canvasHolder.current.id}`));
     }
+  }, [canvasHolder]);
 
-    componentDidMount() {
-        this.state.canvas.addLayers(this.props.layers)
-        this.state.canvas.render()
+  React.useEffect(() => {
+    if (canvas === null) return;
+    if (canvas.layers !== spectrumData.layers) {
+      if (canvas.layers.length) {
+        canvas.clear();
+      }
+      canvas.addLayers(spectrumData.layers);
+      canvas.render();
     }
-
-    componentDidUpdate(prevProps) {
-        console.log("componentDidUpdate", prevProps)
-        if(this.props.layers !== prevProps.layers){
-            this.state.canvas.clear()
-            this.state.canvas.addLayers(this.props.layers)
-            this.state.canvas.render()
-        }
-    }
-
-    render() {
-        return (
-            <div className="spectrum-canvas" id="spectrum-canvas-container">
-            </div>
-        )
-    }
+  }, [spectrumData, canvas]);
+  return (
+    <div className="spectrum-view-container">
+      <h3>{spectrumData.scanId || "Select a Scan"}</h3>
+      <div
+        className="spectrum-canvas"
+        id="spectrum-canvas-container"
+        ref={canvasHolder}
+      ></div>
+    </div>
+  );
 }

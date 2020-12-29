@@ -2,70 +2,26 @@
   text-align: center;
 }
 
-.cursor-label {
-  font-size: 0.8em;
-}
-
-
 /* control widgets */
 
 .spectrum-canvas-controls {
   display: flex;
   margin-left: 25%;
   margin-right: 25%;
+  margin-top: 1em;
+  margin-bottom: 1em;
 }
 
-.spectrum-canvas-controls div {
+.spectrum-canvas-controls > div {
   flex: 1;
-  margin-top: 3px;
-  margin-bottom: 3px;
+  /* margin-top: 3px;
+  margin-bottom: 3px; */
 }
 
-/* scan-lis */
-
-
-.scan-list-container {
-  width: 80%;
-  margin-left: 10%;
-  margin-right: 10%;
+.capitalized {
+  text-transform: capitalize;
 }
 
-.scan-record-header {
-  display: block;
-}
-
-.scan-record-body {
-  display: block;
-  flex: 1;
-  overflow-y: scroll;
-  height: 400px;
-}
-
-.scan-record {
-  font-size: 0.8em;
-}
-
-.scan-record.ms-level-1 {
-  background: rgb(218, 238, 238);
-}
-.scan-record.ms-level-n {
-  background: rgb(240, 239, 239);
-}
-
-.scan-record:hover {
-  background: lightskyblue;
-}
-
-.scan-record-body tr, .scan-record-header tr {
-  display: flex;
-  width: 100%;
-  align-items: center;
-  justify-content: center;
-  border-bottom: 1px solid black;
-}
-
-.scan-attrib {
-  flex: 1;
-  padding-top: 1px;
-  padding-bottom: 1px;
+.mw-120 {
+  min-width: 120px;
 }

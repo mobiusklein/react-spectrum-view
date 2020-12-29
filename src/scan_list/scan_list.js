@@ -1,90 +1,174 @@
-import React, { Component } from "react"
+import * as React from "react";
 
+import { makeStyles } from "@material-ui/core/styles";
+import CircularProgress from "@material-ui/core/CircularProgress";
+import TextField from "@material-ui/core/TextField";
+import InputLabel from "@material-ui/core/InputLabel";
+import FormControl from "@material-ui/core/FormControl";
+import { getScan, makeWeakScanId } from "../util";
+
+import "./scan-list.css";
+
+const useStyles = makeStyles((theme) => ({
+  root: {
+    display: "flex",
+    "& > * + *": {
+      marginLeft: theme.spacing(2),
+    },
+  },
+}));
 
 // Layout based upon https://stackoverflow.com/questions/48749090/fixed-header-flex-table-header-vertical-align
 
-export default class ScanList extends Component {
-    constructor(props) {
-        super(props)
-        this.state = {
-            dataFileKey: props.dataFileKey,
-            getScan: props.getScan,
-            records: [],
-            checksum: -1
-        }
-    }
-
-    fetchRecords() {
-        let request = fetch(`http://localhost:5000/index/${this.state.dataFileKey}`)
-        request.then(response => response.json()).then(data => {
-            console.log("Fetched Records", data)
-            let newState = Object.assign({}, this.state)
-            newState.records = data.records
-            newState.checksum = data.records.length
-            this.setState(newState)
-        })
-        this.handleClick = this.handleClick.bind(this)
-    }
-
-    handleClick(e) {
-        e.preventDefault()
-        let element = e.target
-        while(!element.classList.contains("scan-record")) {
-            element = element.parentElement
-            if(element === null || element === undefined) {
-                return
-            }
-        }
-        if (element.classList.contains("scan-record")) {
-            this.state.getScan(undefined, element.dataset.scanId)
-        }
-    }
-
-    makeRow(record) {
-        return <tr className={`scan-record ms-level-${record.ms_level > 1 ? 'n' : '1'}`} key={record.scan_id} data-scan-id={record.scan_id} onClick={this.handleClick}>
-            <td className="scan-attrib">{record.scan_id}</td>
-            <td className="scan-attrib">{record.scan_time.toFixed(3)}</td>
-            <td className="scan-attrib">{record.ms_level}</td>
-            <td className="scan-attrib">{record.mz !== undefined ? record.mz.toFixed(3) : '\u00A0'}</td>
-            <td className="scan-attrib">{record.charge !== undefined ? record.charge : '\u00A0'}</td>
-            <td className="scan-attrib">{record.activation !== undefined ? record.activation.method : '\u00A0'}</td>
-        </tr>
-    }
-
-    componentDidMount() {
-        this.fetchRecords()
-    }
-
-    shouldComponentUpdate(nextProps, nextState){
-        if(nextState.checksum === this.state.checksum){
-            return false
-        }
-        return true
-    }
-
-    componentDidUpdate(prevProps) {
-        console.log("Updated", this)
-    }
-
-    render() {
-        let rows = this.state.records.map(this.makeRow.bind(this))
-        console.log("Render", rows)
-        return(
-            <table className='scan-list-container'>
-                <thead className="scan-record-header">
-                    <tr>
-                        <th className="scan-attrib">Scan ID</th>
-                        <th className="scan-attrib">Scan Time</th>
-                        <th className="scan-attrib">MS Level</th>
-                        <th className="scan-attrib">Precursor m/z</th>
-                        <th className="scan-attrib">Precursor Charge</th>
-                        <th className="scan-attrib">Activation</th>
-                    </tr>
-                </thead>
-                <tbody className="scan-record-body">
-                    {rows}
-                </tbody>
-            </table>
-        )
-    }
+function SpectrumGetter({ scanIndex, config, dispatch, setProgress }) {
+  return (
+    <FormControl>
+      <TextField
+        placeholder="Scan Index"
+        id="scan-index-fetch"
+        label="Load Scan by Index"
+        variant="outlined"
+        onBlur={(event) => {
+          getScan(
+            makeWeakScanId(parseInt(event.target.value)),
+            config,
+            dispatch,
+            setProgress
+          );
+        }}
+      />
+    </FormControl>
+  );
+  // return <button onClick={onClick}>Fetch {scanIndex}</button>;
 }
+
+function makeSpectrumListRow(record, onClickHandler) {
+  return (
+    <tr
+      className={`scan-record ms-level-${record.ms_level > 1 ? "n" : "1"}`}
+      key={record.scan_id}
+      data-scan-id={record.scan_id}
+      onClick={onClickHandler}
+    >
+      <td className="scan-attrib">{record.scan_id}</td>
+      <td className="scan-attrib">{record.scan_time.toFixed(3)}</td>
+      <td className="scan-attrib narrow">{record.ms_level}</td>
+      <td className="scan-attrib narrow">
+        {record.mz !== undefined ? record.mz.toFixed(3) : "\u00A0"}
+      </td>
+      <td className="scan-attrib narrow">
+        {record.charge !== undefined ? record.charge : "\u00A0"}
+      </td>
+      <td className="scan-attrib">
+        {record.activation !== undefined ? record.activation.method : "\u00A0"}
+      </td>
+    </tr>
+  );
+}
+
+function makeSpectrumListRowClickHandler(config, setSpectrumData, setProgress) {
+  const onClickHandler = (e) => {
+    e.preventDefault();
+    let element = e.target;
+    while (!element.classList.contains("scan-record")) {
+      element = element.parentElement;
+      if (element === null || element === undefined) {
+        return;
+      }
+    }
+    if (element.classList.contains("scan-record")) {
+      getScan(element.dataset.scanId, config, setSpectrumData, setProgress);
+    }
+  };
+  return onClickHandler;
+}
+
+const SpectrumListRows = React.memo(
+  (props) => {
+    const { listState, onClickHandler } = props;
+    const rows = listState.records.map((record) =>
+      makeSpectrumListRow(record, onClickHandler)
+    );
+    console.log("Rendering", rows.length, "rows");
+    return <tbody className="scan-record-body">{rows}</tbody>;
+  },
+  (prevProps, nextProps) =>
+    prevProps.listState.checksum === nextProps.listState.checksum
+);
+
+function SpectrumList({ config, setSpectrumData, spectrumLoadingProgress }) {
+  const [listState, setListState] = React.useState({
+    records: [],
+    checksum: -1,
+  });
+
+  const [loadStatus, setLoadStatus] = React.useState("idle");
+
+  React.useEffect(() => {
+    const request = fetch(`http://localhost:5000/index/${config.dataFileKey}`);
+    setLoadStatus("pending");
+    request
+      .then((response) => {
+        setLoadStatus("parsing");
+        return response.json();
+      })
+      .then((data) => {
+        console.log("Fetched Records", data);
+        const newState = {
+          records: data.records,
+          checksum: data.records.length,
+        };
+        setLoadStatus("done");
+        setListState(newState);
+      });
+  }, [config.dataFileKey]);
+
+  const clickHandler = makeSpectrumListRowClickHandler(
+    config,
+    setSpectrumData,
+    spectrumLoadingProgress
+  );
+  switch (loadStatus) {
+    case "done": {
+      return (
+        <table className="scan-list-container">
+          <thead className="scan-record-header">
+            <tr>
+              <th className="scan-attrib">Scan ID</th>
+              <th className="scan-attrib">Scan Time</th>
+              <th className="scan-attrib narrow">MS Level</th>
+              <th className="scan-attrib narrow">Precursor m/z</th>
+              <th className="scan-attrib narrow">Precursor Charge</th>
+              <th className="scan-attrib">Activation</th>
+            </tr>
+          </thead>
+          <SpectrumListRows
+            listState={listState}
+            onClickHandler={clickHandler}
+          />
+        </table>
+      );
+    }
+    case "pending": {
+      return (
+        <div>
+          <h3 role="alert">Loading Spectra...</h3>
+          <CircularProgress />
+        </div>
+      );
+    }
+    case "parsing": {
+      return (
+        <div>
+          <h3 role="alert">Building List...</h3>
+          <CircularProgress />
+        </div>
+      );
+    }
+    default: {
+      return <h3 role="alert">Loading... {loadStatus}</h3>;
+    }
+  }
+}
+
+export { SpectrumGetter, SpectrumList };

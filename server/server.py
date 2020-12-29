@@ -77,6 +77,10 @@ def get_scan(key, scan_id):
     print(values)
     with lock:
         scan = reader.get_scan_by_id(scan_id)
+        if scan.ms_level == 1:
+            ms1_scan_averaging = int(values.get("ms1-averaging", 0))
+            if ms1_scan_averaging > 0:
+                scan = scan.average(ms1_scan_averaging)
         mz_array = scan.arrays.mz
         intensity_array = scan.arrays.intensity
         scan.pick_peaks()
