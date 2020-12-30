@@ -3,10 +3,9 @@ import _ from "lodash";
 
 const defaultColor = "steelblue";
 
-export class DataLayer {
-  constructor(metadata) {
-    this.metadata = metadata;
-    this._color = null;
+export class SpectrumData {
+  asArray() {
+    return Array.from(this);
   }
 
   [Symbol.iterator]() {
@@ -23,22 +22,6 @@ export class DataLayer {
       },
     };
     return iterator;
-  }
-
-  get color() {
-    return this._color === null ? defaultColor : this._color;
-  }
-
-  set color(value) {
-    this._color = value;
-  }
-
-  get layerType() {
-    return "data";
-  }
-
-  asArray() {
-    return Array.from(this);
   }
 
   maxMz() {
@@ -156,6 +139,26 @@ export class DataLayer {
   between(beginMz, endMz) {
     return this.slice(this.searchMz(beginMz), this.searchMz(endMz));
   }
+}
+
+export class DataLayer extends SpectrumData {
+  constructor(metadata) {
+    super();
+    this.metadata = metadata;
+    this._color = null;
+  }
+
+  get color() {
+    return this._color === null ? defaultColor : this._color;
+  }
+
+  set color(value) {
+    this._color = value;
+  }
+
+  get layerType() {
+    return "data";
+  }
 
   onBrush(brush) {
     // console.log("onBrush", this)
@@ -221,6 +224,80 @@ export class DataLayer {
       .append("g")
       .attr("class", "brush")
       .call(canvas.brush);
+  }
+}
+
+export class LineArtist extends SpectrumData {
+  constructor(points, metadata) {
+    super();
+    this.points = points;
+    this.points.sort((a, b) => {
+      if (a.mz < b.mz) {
+        return -1;
+      } else if (a.mz > b.mz) {
+        return 1;
+      } else {
+        return 0;
+      }
+    });
+    this.length = points.length;
+    this.line = null;
+    this.label = metadata.label ? metadata.label : "";
+    this.color = metadata.color ? metadata.color : defaultColor;
+  }
+
+  get(i) {
+    return this.points[i];
+  }
+
+  remove() {
+    this.line.remove();
+    this.path.remove();
+  }
+
+  _makeData() {
+    let result = [];
+    for (let point of this.points) {
+      let beforePoint = Object.assign({}, point);
+      let afterPoint = Object.assign({}, point);
+      beforePoint.mz -= 1e-6;
+      beforePoint.intensity = -1;
+      result.push(beforePoint);
+      result.push(point);
+      afterPoint.mz += 1e-6;
+      afterPoint.intensity = -1;
+      result.push(afterPoint);
+    }
+    return result;
+  }
+
+  buildPath(canvas) {
+    let path = d3
+      .line()
+      .x((d) => canvas.xScale(d.mz))
+      .y((d) => canvas.yScale(d.intensity));
+    return path;
+  }
+
+  styleArtist(path) {
+    return path
+      .attr("stroke", this.color)
+      .attr("stroke-width", 2.5)
+      .attr("fill", "none");
+  }
+
+  initArtist(canvas) {
+    this.line = canvas.container.append("g").attr("clip-path", "url(#clip)");
+    let points = this._makeData();
+
+    this.path = this.styleArtist(
+      this.line
+        .append("path")
+        .datum(points)
+        .attr("class", `line ${this.layerType}`)
+    );
+
+    this.path.attr("d", this.buildPath(canvas));
   }
 }
 
@@ -343,6 +420,8 @@ export class DeconvolutedLayer extends PointLayer {
   constructor(points, metadata) {
     super(points, metadata);
     this.patternContainer = null;
+    this.patternLine = null;
+    this.patternColor = null;
   }
 
   onHover(canvas, cursorInfo) {
@@ -350,16 +429,22 @@ export class DeconvolutedLayer extends PointLayer {
     let mz = cursorInfo.mz;
     let index = this.searchMz(mz);
     let peak = this.get(index);
-    // console.log("Deconvoluted", peak);
     if (peak === undefined) {
       return;
     }
     if (Math.abs(peak.mz - mz) > 1.5) {
-      if (this.patternContainer !== null) {
+      if (this.patternContainer) {
         this.patternContainer.remove();
         this.patternContainer = null;
       }
+      if (this.patternLine) {
+        this.patternLine.remove();
+        this.patternLine = null;
+      }
       return;
+    }
+    if (!this.patternColor) {
+      this.patternColor = d3.rgb(this.color).darker(1);
     }
     let averageMz = 0;
     let totalIntensity = 0;
@@ -392,6 +477,14 @@ export class DeconvolutedLayer extends PointLayer {
       .text(neutralMass(peak.mz, peak.charge).toFixed(3) + `, ${peak.charge}`)
       .style("text-anchor", "middle")
       .attr("class", "cursor-label envelope-label");
+
+    if (this.patternLine) {
+      this.patternLine.remove();
+    }
+    this.patternLine = new LineArtist(peak.envelope, {
+      color: this.patternColor,
+    });
+    this.patternLine.initArtist(canvas);
   }
 
   remove() {
@@ -399,6 +492,9 @@ export class DeconvolutedLayer extends PointLayer {
     if (this.patternContainer) {
       this.patternContainer.remove();
       this.patternContainer = null;
+    }
+    if (this.patternLine) {
+      this.patternLine.remove();
     }
   }
 }
@@ -415,6 +511,7 @@ export class PrecursorPeakLayer extends AbstractPointLayer {
     this.mz = peak.mz;
     this.intensity = peak.intensity;
     this.charge = peak.charge;
+    this.precursorLabel = null;
   }
 
   maxIntensity() {
@@ -425,12 +522,36 @@ export class PrecursorPeakLayer extends AbstractPointLayer {
     return "precursor-layer";
   }
 
+  addLabel(canvas) {
+    this.precursorLabel = canvas.container
+      .append("text")
+      .attr(
+        "transform",
+        `translate(${canvas.width * 0.85},${canvas.height * 0.02})`
+      )
+      .style("text-anchor", "left")
+      .attr("class", "precursor-label")
+      .text(`Precursor m/z: ${this.mz}`);
+  }
+
+  initArtist(canvas) {
+    super.initArtist(canvas);
+    this.addLabel(canvas);
+  }
+
   styleArtist(path) {
     let gapSize = 10;
     let dashSize = 5;
     return super
       .styleArtist(path)
       .attr("stroke-dasharray", `${dashSize} 1 ${gapSize}`);
+  }
+
+  remove() {
+    super.remove();
+    if (this.precursorLabel) {
+      this.precursorLabel.remove();
+    }
   }
 }
 

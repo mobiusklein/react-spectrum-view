@@ -1,3 +1,7 @@
 .cursor-label {
   font-size: 0.8em;
 }
+
+.spectrum-view-container {
+    height: 40%;
+}

@@ -79,6 +79,8 @@ export default class SpectrumCanvas {
 
     this.layers = [];
     this.colorCycle = new ColorCycle();
+
+    this.extentMzInterval = [this.minMz(), this.maxMz()];
   }
 
   addLayer(layer) {
@@ -96,6 +98,7 @@ export default class SpectrumCanvas {
         layer.initArtist(this);
       }
     }
+    this.extentMzInterval = [this.minMz(), this.maxMz()];
     if (this.container) {
       this.render();
     }
@@ -104,6 +107,7 @@ export default class SpectrumCanvas {
   clear() {
     this.remove();
     this.layers = [];
+    this.extentMzInterval = [0, 0];
   }
 
   minMz() {
@@ -309,30 +313,36 @@ export default class SpectrumCanvas {
     this.idleTimeout = null;
   }
 
+  setExtentByMz(minMz, maxMz) {
+    if (minMz === undefined) {
+      minMz = this.minMz();
+    }
+    if (maxMz === undefined) {
+      maxMz = this.maxMz();
+    }
+    const maxIntensity = this.maxIntensityBetween(minMz, maxMz) + 100.0;
+    this.extentMzInterval = [minMz, maxMz];
+    this.xScale.domain([minMz, maxMz]);
+    this.yScale.domain([0, maxIntensity * 1.05]);
+    this.xAxis.transition().duration(100).call(d3.axisBottom(this.xScale));
+    this.yAxis.transition().duration(100).call(d3.axisLeft(this.yScale));
+    this.layers.map((layer) => layer.onBrush(this.brush));
+    this.layers.map((layer) => layer.redraw(this));
+  }
+
   updateChart() {
     let extent = d3.event.selection;
-    console.log(extent, this.idleTimeout);
     if (!extent) {
       if (!this.idleTimeout) {
         this.idleTimeout = setTimeout(() => this._idled(), 350);
         return this.idleTimeout;
       }
-      console.log("In updateChart without extent");
-      this.xScale.domain([this.minMz(), this.maxMz()]);
-      this.yScale.domain([this.minIntensity(), this.maxIntensity() * 1.05]);
+      this.setExtentByMz(this.minMz(), this.maxMz());
     } else {
-      let minMz = this.xScale.invert(extent[0]);
-      let maxMz = this.xScale.invert(extent[1]);
-      let maxIntensity = this.maxIntensityBetween(minMz, maxMz) + 100.0;
-      console.log("In updateChart with extent", minMz, maxMz, maxIntensity);
-      this.xScale.domain([minMz, maxMz]);
-      this.yScale.domain([0, maxIntensity * 1.05]);
-      // This remove the grey brush area as soon as the selection has been done
-      this.layers.map((layer) => layer.onBrush(this.brush));
+      const minMz = this.xScale.invert(extent[0]);
+      const maxMz = this.xScale.invert(extent[1]);
+      this.setExtentByMz(minMz, maxMz);
     }
-    this.xAxis.transition().duration(100).call(d3.axisBottom(this.xScale));
-    this.yAxis.transition().duration(100).call(d3.axisLeft(this.yScale));
-    this.layers.map((layer) => layer.redraw(this));
   }
 
   draw() {

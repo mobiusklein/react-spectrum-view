@@ -5,7 +5,7 @@ import CircularProgress from "@material-ui/core/CircularProgress";
 import TextField from "@material-ui/core/TextField";
 import InputLabel from "@material-ui/core/InputLabel";
 import FormControl from "@material-ui/core/FormControl";
-import { getScan, makeWeakScanId } from "../util";
+import { getScan, getScanByIndex } from "../util";
 
 import "./scan-list.css";
 
@@ -29,8 +29,8 @@ function SpectrumGetter({ scanIndex, config, dispatch, setProgress }) {
         label="Load Scan by Index"
         variant="outlined"
         onBlur={(event) => {
-          getScan(
-            makeWeakScanId(parseInt(event.target.value)),
+          getScanByIndex(
+            parseInt(event.target.value),
             config,
             dispatch,
             setProgress
@@ -39,7 +39,6 @@ function SpectrumGetter({ scanIndex, config, dispatch, setProgress }) {
       />
     </FormControl>
   );
-  // return <button onClick={onClick}>Fetch {scanIndex}</button>;
 }
 
 function makeSpectrumListRow(record, onClickHandler) {
@@ -105,7 +104,7 @@ function SpectrumList({ config, setSpectrumData, spectrumLoadingProgress }) {
   const [loadStatus, setLoadStatus] = React.useState("idle");
 
   React.useEffect(() => {
-    const request = fetch(`http://localhost:5000/index/${config.dataFileKey}`);
+    const request = fetch(`${config.dataHost}index/${config.dataFileKey}`);
     setLoadStatus("pending");
     request
       .then((response) => {

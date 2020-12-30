@@ -6,18 +6,22 @@ import TextField from "@material-ui/core/TextField";
 import Select from "@material-ui/core/Select";
 import InputLabel from "@material-ui/core/InputLabel";
 import MenuItem from "@material-ui/core/MenuItem";
+import FormControl from "@material-ui/core/FormControl";
+import LinearProgress from "@material-ui/core/LinearProgress";
 
 import SpectrumCanvasComponent from "./spectrum/component";
 import { SpectrumGetter, SpectrumList } from "./scan_list/scan_list";
 import { getScan } from "./util";
 
 import "./App.css";
+import { CircularProgress } from "@material-ui/core";
+import { Label } from "@material-ui/icons";
 
 function AveragineSelect({ name, options, currentAveragine, setAveragine }) {
   const useStyles = makeStyles((theme) => ({
     select: {
       margin: theme.spacing(1),
-      minWidth: 120,
+      // minWidth: 120,
     },
   }));
   const classes = useStyles();
@@ -29,7 +33,7 @@ function AveragineSelect({ name, options, currentAveragine, setAveragine }) {
     );
   });
   return (
-    <div>
+    <FormControl>
       <InputLabel id={`${_.kebabCase(name)}-label`}>
         <span className="capitalized">
           {name.replace("ms", "MS").replace("-", " ")}
@@ -48,7 +52,7 @@ function AveragineSelect({ name, options, currentAveragine, setAveragine }) {
       >
         {optTags}
       </Select>
-    </div>
+    </FormControl>
   );
 }
 
@@ -65,22 +69,26 @@ function MS1ScanAveragingInput({ currentValue, setValue }) {
     <TextField
       name="ms1-averaging"
       label="MS1 Averaging"
-      value={currentValue}
+      defaultValue={currentValue}
       size="small"
       margin="dense"
       classes={classes}
       inputProps={{ style: { height: "2.2em", width: "120px" } }}
       variant="outlined"
-      onChange={(event) => setValue(event.target.value)}
+      onBlur={(event) => setValue(event.target.value)}
     />
   );
 }
 
 function SpectrumStatusDisplay({ ...props }) {
+  const spinner = <LinearProgress />;
   return (
-    <div style={{ marginTop: "2em", textTransform: "capitalize" }}>
-      Spectrum Process: {props.value}
-    </div>
+    <FormControl style={{ marginTop: "1.5em", textTransform: "capitalize" }}>
+      <span style={{ marginBottom: "2px" }}>
+        Spectrum Process: {props.value}
+      </span>{" "}
+      {props.value == "pending" && spinner}
+    </FormControl>
   );
 }
 
@@ -92,15 +100,18 @@ function SpectrumViewer({ ...props }) {
   const [spectrumLoadingState, setSpectrumLoadingState] = React.useState(
     "idle"
   );
+  const [dataHost, setDataHost] = React.useState("http://localhost:5000/");
 
   const config = {
     ms1Averagine,
     msnAveragine,
     dataFileKey,
     ms1ScanAveraging,
+    dataHost,
   };
 
   const [spectrumData, setSpectrumData] = React.useState({
+    // scanId: "controllerType=0 controllerNumber=1 scan=10032",
     scanId: null,
     layers: [],
   });
@@ -142,7 +153,7 @@ function SpectrumViewer({ ...props }) {
           setValue={setMS1ScanAveraging}
         />
       </div>
-      <div>
+      <div style={{ marginBottom: "2em" }}>
         <SpectrumGetter
           config={config}
           dispatch={setSpectrumData}

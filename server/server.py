@@ -8,6 +8,7 @@ from flask import Flask, g, request, abort, jsonify
 
 import ms_deisotope
 from ms_deisotope import MSFileLoader
+from ms_deisotope.output import json as msjson
 from ms_deisotope.feature_map import ExtendedScanIndex, quick_index
 
 
@@ -31,7 +32,7 @@ def cors(func, *origins):
     @functools.wraps(func)
     def cors_func(*args, **kwargs):
         response = func(*args, **kwargs)
-        print(origins)
+        print("origins:", origins)
         response.headers.add('Access-Control-Allow-Origin', origins)
         return response
     return cors_func
@@ -45,6 +46,82 @@ def load_index_file(path):
             index = ExtendedScanIndex.load(fh)
         metadata_index[path] = index
         return index
+
+
+def format_scan(scan, values):
+    if scan.ms_level == 1:
+        ms1_scan_averaging = int(values.get("ms1-averaging") or 0)
+        if ms1_scan_averaging > 0:
+            scan = scan.average(ms1_scan_averaging)
+    mz_array = scan.arrays.mz
+    intensity_array = scan.arrays.intensity
+    scan.pick_peaks()
+    points = []
+    for peak in scan.peak_set:
+        points.append({'mz': peak.mz, "intensity": peak.intensity})
+    if scan.ms_level > 1:
+        precursor = scan.precursor_information
+        isolation_window = None
+        if precursor is not None:
+            precursor = {
+                "mz": precursor.mz,
+                "charge": precursor.charge,
+                "intensity": precursor.intensity,
+                "scan_id": scan.id,
+            }
+        averagine_type = averagine_map.get(
+            values.get("msn-averagine", "glycopeptide"),
+            ms_deisotope.glycopeptide)
+        truncate_to = 0.8
+    else:
+        isolation_window = []
+        precursor_ions = []
+        bunch = next(reader.start_from_scan(scan.id))
+        for product in bunch.products:
+            window = product.isolation_window
+            if window is not None:
+                isolation_window.append({
+                    "lower_bound": window.lower_bound,
+                    "upper_bound": window.upper_bound
+                })
+            precursor = product.precursor_information
+            if precursor is not None:
+                precursor_ions.append({
+                    "mz": precursor.mz,
+                    "charge": precursor.charge,
+                    "intensity": precursor.intensity,
+                    "scan_id": precursor.precursor_scan_id,
+                })
+        averagine_type = averagine_map.get(
+            values.get("ms1-averagine", "glycopeptide"),
+            ms_deisotope.glycopeptide)
+        precursor = precursor_ions
+        truncate_to = 0.95
+    scan.deconvolute(averagine=averagine_type, truncate_to=0.999, incremental_truncation=truncate_to)
+    deconvoluted_points = []
+    for peak in scan.deconvoluted_peak_set:
+        deconvoluted_points.append({
+            "mz": peak.mz,
+            "charge": peak.charge,
+            "intensity": peak.intensity,
+            "envelope": [
+                {'mz': e.mz, 'intensity': e.intensity} for e in peak.envelope
+            ]
+        })
+
+    response = jsonify(
+        scan_id=scan.id,
+        mz=mz_array.tolist(),
+        intensity=intensity_array.tolist(),
+        points=points,
+        deconvoluted_points=deconvoluted_points,
+        scan_time=scan.scan_time,
+        ms_level=scan.ms_level,
+        is_profile=scan.is_profile,
+        precursor_information=precursor,
+        isolation_window=isolation_window,
+    )
+    return response
 
 
 @app.route("/index/<key>", methods=["GET", "POST"])
@@ -68,6 +145,19 @@ def get_index(key):
         return jsonify(records=records, scan_count=len(records))
 
 
+@app.route("/scan_index_to_id/<key>/<int:scan_index>", methods=["GET", "POST"])
+@cors
+def get_scan_from_index(key, scan_index):
+    path = key_index[key]
+    reader, lock = reader_index[path]
+    values = request.values
+    print(values)
+    with lock:
+        scan = reader.get_scan_by_index(scan_index)
+        response = format_scan(scan, values)
+    return response
+
+
 @app.route("/scan/<key>/<string:scan_id>", methods=["GET", "POST"])
 @cors
 def get_scan(key, scan_id):
@@ -77,78 +167,7 @@ def get_scan(key, scan_id):
     print(values)
     with lock:
         scan = reader.get_scan_by_id(scan_id)
-        if scan.ms_level == 1:
-            ms1_scan_averaging = int(values.get("ms1-averaging", 0))
-            if ms1_scan_averaging > 0:
-                scan = scan.average(ms1_scan_averaging)
-        mz_array = scan.arrays.mz
-        intensity_array = scan.arrays.intensity
-        scan.pick_peaks()
-        points = []
-        for peak in scan.peak_set:
-            points.append({'mz': peak.mz, "intensity": peak.intensity})
-        if scan.ms_level > 1:
-            precursor = scan.precursor_information
-            isolation_window = None
-            if precursor is not None:
-                precursor = {
-                    "mz": precursor.mz,
-                    "charge": precursor.charge,
-                    "intensity": precursor.intensity,
-                    "scan_id": scan.id,
-                }
-            averagine_type = averagine_map.get(
-                values.get("msn-averagine", "glycopeptide"),
-                ms_deisotope.glycopeptide)
-            truncate_to = 0.8
-        else:
-            isolation_window = []
-            precursor_ions = []
-            bunch = next(reader.start_from_scan(scan_id))
-            for product in bunch.products:
-                window = product.isolation_window
-                if window is not None:
-                    isolation_window.append({
-                        "lower_bound": window.lower_bound,
-                        "upper_bound": window.upper_bound
-                    })
-                precursor = product.precursor_information
-                if precursor is not None:
-                    precursor_ions.append({
-                        "mz": precursor.mz,
-                        "charge": precursor.charge,
-                        "intensity": precursor.intensity,
-                        "scan_id": product.id,
-                    })
-            averagine_type = averagine_map.get(
-                values.get("ms1-averagine", "glycopeptide"),
-                ms_deisotope.glycopeptide)
-            precursor = precursor_ions
-            truncate_to = 0.95
-        scan.deconvolute(averagine=averagine_type, truncate_to=truncate_to)
-        deconvoluted_points = []
-        for peak in scan.deconvoluted_peak_set:
-            deconvoluted_points.append({
-                "mz": peak.mz,
-                "charge": peak.charge,
-                "intensity": peak.intensity,
-                "envelope": [
-                    {'mz': e.mz, 'intensity': e.intensity} for e in peak.envelope
-                ]
-            })
-
-    response = jsonify(
-        scan_id=scan_id,
-        mz=mz_array.tolist(),
-        intensity=intensity_array.tolist(),
-        points=points,
-        deconvoluted_points=deconvoluted_points,
-        scan_time=scan.scan_time,
-        ms_level=scan.ms_level,
-        is_profile=scan.is_profile,
-        precursor_information=precursor,
-        isolation_window=isolation_window,
-    )
+        response = format_scan(scan, values)
     return response
 
 
