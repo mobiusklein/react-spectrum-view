@@ -160,13 +160,13 @@ function SpectrumViewer({ ...props }) {
           setProgress={setSpectrumLoadingState}
         />
       </div>
-      <div>
+      {/* <div>
         <SpectrumList
           config={config}
           setSpectrumData={setSpectrumData}
           spectrumLoadingProgress={setSpectrumLoadingState}
         />
-      </div>
+      </div> */}
     </div>
   );
 }

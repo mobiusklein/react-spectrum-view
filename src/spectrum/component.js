@@ -6,7 +6,6 @@ import "./spectrum_canvas.css";
 export default function SpectrumCanvasComponent({ config, spectrumData }) {
   const canvasHolder = React.useRef(null);
   const [canvas, setCanvas] = React.useState(null);
-  window.canvas = canvas;
   React.useLayoutEffect(() => {
     if (canvasHolder.current) {
       setCanvas(new SpectrumCanvas(`#${canvasHolder.current.id}`));

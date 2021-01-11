@@ -426,9 +426,9 @@ export class DeconvolutedLayer extends PointLayer {
 
   onHover(canvas, cursorInfo) {
     super.onHover(canvas, cursorInfo);
-    let mz = cursorInfo.mz;
+    const mz = cursorInfo.mz;
     let index = this.searchMz(mz);
-    let peak = this.get(index);
+    const peak = this.get(index);
     if (peak === undefined) {
       return;
     }
@@ -444,7 +444,15 @@ export class DeconvolutedLayer extends PointLayer {
       return;
     }
     if (!this.patternColor) {
-      this.patternColor = d3.rgb(this.color).darker(1);
+      const patternColor = d3.rgb(this.color);
+      const totalChannels =
+        ((patternColor.r + patternColor.g + patternColor.b) * 1.0) / (125 * 3);
+      console.log(this.color, totalChannels);
+      if (totalChannels < 0.5) {
+        this.patternColor = patternColor.brighter(2);
+      } else {
+        this.patternColor = patternColor.darker(1);
+      }
     }
     let averageMz = 0;
     let totalIntensity = 0;
@@ -460,9 +468,9 @@ export class DeconvolutedLayer extends PointLayer {
       }
       i++;
     }
-    let apexMz = averageMz / totalIntensity;
-    let apexMzPosition = canvas.xScale(apexMz);
-    let apexIntensityPosition = canvas.yScale(apexIntensity * 1.2);
+    const apexMz = averageMz / totalIntensity;
+    const apexMzPosition = canvas.xScale(apexMz);
+    const apexIntensityPosition = canvas.yScale(apexIntensity * 1.2);
     if (this.patternContainer) {
       this.patternContainer.remove();
     }
@@ -523,6 +531,12 @@ export class PrecursorPeakLayer extends AbstractPointLayer {
   }
 
   addLabel(canvas) {
+    const lines = [
+      `Prec. m/z: ${this.mz.toFixed(3)}`,
+      `Prec. z: ${this.charge}`,
+      `Prec. mass: ${neutralMass(this.mz, this.charge).toFixed(3)}`,
+    ];
+
     this.precursorLabel = canvas.container
       .append("text")
       .attr(
@@ -530,8 +544,16 @@ export class PrecursorPeakLayer extends AbstractPointLayer {
         `translate(${canvas.width * 0.85},${canvas.height * 0.02})`
       )
       .style("text-anchor", "left")
-      .attr("class", "precursor-label")
-      .text(`Precursor m/z: ${this.mz}`);
+      .attr("class", "precursor-label");
+    this.precursorLabel
+      .selectAll("tspan.precursor-label-row")
+      .data(lines)
+      .enter()
+      .append("tspan")
+      .attr("dx", 10)
+      .attr("dy", 16)
+      .attr("x", 0)
+      .text((d) => d);
   }
 
   initArtist(canvas) {

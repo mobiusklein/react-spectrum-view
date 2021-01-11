@@ -182,7 +182,7 @@ export default class SpectrumCanvas {
       .range([0, this.width]);
     this.yScale = d3
       .scaleLinear()
-      .domain([this.minIntensity(), this.maxIntensity() * 1.05])
+      .domain([this.minIntensity(), this.maxIntensity() * 1.25])
       .range([this.height, 0]);
     this.xAxis = this.container
       .append("g")
