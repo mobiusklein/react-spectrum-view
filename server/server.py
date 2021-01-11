@@ -48,17 +48,31 @@ def load_index_file(path):
         return index
 
 
-def format_scan(scan, values):
+def process_scan(scan, params):
     if scan.ms_level == 1:
-        ms1_scan_averaging = int(values.get("ms1-averaging") or 0)
+        ms1_scan_averaging = int(params.get("ms1-averaging") or 0)
         if ms1_scan_averaging > 0:
             scan = scan.average(ms1_scan_averaging)
+    scan.pick_peaks()
+    if scan.ms_level > 1:
+        averagine_type = averagine_map.get(
+            params.get("msn-averagine", "glycopeptide"),
+            ms_deisotope.glycopeptide)
+        truncate_to = 0.8
+    else:
+        averagine_type = averagine_map.get(
+            params.get("ms1-averagine", "glycopeptide"),
+            ms_deisotope.glycopeptide)
+        truncate_to = 0.95
+    scan.deconvolute(averagine=averagine_type, truncate_to=0.999,
+                     incremental_truncation=truncate_to)
+    return scan
+
+
+def scan_to_json(scan):
     mz_array = scan.arrays.mz
     intensity_array = scan.arrays.intensity
-    scan.pick_peaks()
-    points = []
-    for peak in scan.peak_set:
-        points.append({'mz': peak.mz, "intensity": peak.intensity})
+
     if scan.ms_level > 1:
         precursor = scan.precursor_information
         isolation_window = None
@@ -69,10 +83,6 @@ def format_scan(scan, values):
                 "intensity": precursor.intensity,
                 "scan_id": scan.id,
             }
-        averagine_type = averagine_map.get(
-            values.get("msn-averagine", "glycopeptide"),
-            ms_deisotope.glycopeptide)
-        truncate_to = 0.8
     else:
         isolation_window = []
         precursor_ions = []
@@ -92,12 +102,12 @@ def format_scan(scan, values):
                     "intensity": precursor.intensity,
                     "scan_id": precursor.precursor_scan_id,
                 })
-        averagine_type = averagine_map.get(
-            values.get("ms1-averagine", "glycopeptide"),
-            ms_deisotope.glycopeptide)
         precursor = precursor_ions
-        truncate_to = 0.95
-    scan.deconvolute(averagine=averagine_type, truncate_to=0.999, incremental_truncation=truncate_to)
+
+    points = []
+    for peak in scan.peak_set:
+        points.append({'mz': peak.mz, "intensity": peak.intensity})
+
     deconvoluted_points = []
     for peak in scan.deconvoluted_peak_set:
         deconvoluted_points.append({
@@ -109,7 +119,7 @@ def format_scan(scan, values):
             ]
         })
 
-    response = jsonify(
+    result = dict(
         scan_id=scan.id,
         mz=mz_array.tolist(),
         intensity=intensity_array.tolist(),
@@ -121,6 +131,12 @@ def format_scan(scan, values):
         precursor_information=precursor,
         isolation_window=isolation_window,
     )
+    return result
+
+
+def format_scan(scan, params):
+    scan = process_scan(scan, params)
+    response = jsonify(**scan_to_json(scan))
     return response
 
 
