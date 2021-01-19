@@ -3,7 +3,7 @@ import * as React from "react";
 import { makeStyles } from "@material-ui/core/styles";
 import CircularProgress from "@material-ui/core/CircularProgress";
 import TextField from "@material-ui/core/TextField";
-import InputLabel from "@material-ui/core/InputLabel";
+// import InputLabel from "@material-ui/core/InputLabel";
 import FormControl from "@material-ui/core/FormControl";
 import { getScan, getScanByIndex } from "../util";
 
@@ -120,7 +120,7 @@ function SpectrumList({ config, setSpectrumData, spectrumLoadingProgress }) {
         setLoadStatus("done");
         setListState(newState);
       });
-  }, [config.dataFileKey]);
+  }, [config.dataFileKey, config.dataHost]);
 
   const clickHandler = makeSpectrumListRowClickHandler(
     config,

@@ -24,7 +24,7 @@ let DEFAULT_COLOR_CYCLE = [
 
 class ColorCycle {
   constructor(colors) {
-    if (colors === undefined) {
+    if (!colors || colors.length === 0) {
       colors = Array.from(DEFAULT_COLOR_CYCLE);
     }
     this.colors = colors;
@@ -47,7 +47,7 @@ class ColorCycle {
 }
 
 export default class SpectrumCanvas {
-  constructor(containerSelector, width, height, margins) {
+  constructor(containerSelector, width, height, margins, colors) {
     console.log("Creating a Canvas");
     this.containerSelector = containerSelector;
 
@@ -78,7 +78,7 @@ export default class SpectrumCanvas {
     this.idledTimeout = null;
 
     this.layers = [];
-    this.colorCycle = new ColorCycle();
+    this.colorCycle = new ColorCycle(colors);
 
     this.extentMzInterval = [this.minMz(), this.maxMz()];
   }

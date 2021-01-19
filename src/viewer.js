@@ -14,8 +14,8 @@ import { SpectrumGetter, SpectrumList } from "./scan_list/scan_list";
 import { getScan } from "./util";
 
 import "./App.css";
-import { CircularProgress } from "@material-ui/core";
-import { Label } from "@material-ui/icons";
+// import { CircularProgress } from "@material-ui/core";
+// import { Label } from "@material-ui/icons";
 
 function AveragineSelect({ name, options, currentAveragine, setAveragine }) {
   const useStyles = makeStyles((theme) => ({
@@ -160,13 +160,13 @@ function SpectrumViewer({ ...props }) {
           setProgress={setSpectrumLoadingState}
         />
       </div>
-      {/* <div>
+      <div>
         <SpectrumList
           config={config}
           setSpectrumData={setSpectrumData}
           spectrumLoadingProgress={setSpectrumLoadingState}
         />
-      </div> */}
+      </div>
     </div>
   );
 }

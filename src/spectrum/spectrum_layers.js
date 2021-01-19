@@ -1,7 +1,22 @@
 import * as d3 from "d3";
-import _ from "lodash";
 
 const defaultColor = "steelblue";
+
+function pointToProfile(points) {
+  const result = [];
+  for (const point of points) {
+    const beforePoint = Object.assign({}, point);
+    const afterPoint = Object.assign({}, point);
+    beforePoint.mz -= 1e-6;
+    beforePoint.intensity = -1;
+    result.push(beforePoint);
+    result.push(point);
+    afterPoint.mz += 1e-6;
+    afterPoint.intensity = -1;
+    result.push(afterPoint);
+  }
+  return result;
+}
 
 export class SpectrumData {
   asArray() {
@@ -188,7 +203,7 @@ export class DataLayer extends SpectrumData {
   }
 
   buildPath(canvas) {
-    let path = d3
+    const path = d3
       .line()
       .x((d) => canvas.xScale(d.mz))
       .y((d) => canvas.yScale(d.intensity));
@@ -209,7 +224,7 @@ export class DataLayer extends SpectrumData {
   initArtist(canvas) {
     this.line = canvas.container.append("g").attr("clip-path", "url(#clip)");
     this.color = canvas.colorCycle.nextColor();
-    let points = this._makeData();
+    const points = this._makeData();
 
     this.path = this.styleArtist(
       this.line
@@ -256,23 +271,12 @@ export class LineArtist extends SpectrumData {
   }
 
   _makeData() {
-    let result = [];
-    for (let point of this.points) {
-      let beforePoint = Object.assign({}, point);
-      let afterPoint = Object.assign({}, point);
-      beforePoint.mz -= 1e-6;
-      beforePoint.intensity = -1;
-      result.push(beforePoint);
-      result.push(point);
-      afterPoint.mz += 1e-6;
-      afterPoint.intensity = -1;
-      result.push(afterPoint);
-    }
+    const result = pointToProfile(this.points);
     return result;
   }
 
   buildPath(canvas) {
-    let path = d3
+    const path = d3
       .line()
       .x((d) => canvas.xScale(d.mz))
       .y((d) => canvas.yScale(d.intensity));
@@ -288,7 +292,7 @@ export class LineArtist extends SpectrumData {
 
   initArtist(canvas) {
     this.line = canvas.container.append("g").attr("clip-path", "url(#clip)");
-    let points = this._makeData();
+    const points = this._makeData();
 
     this.path = this.styleArtist(
       this.line
@@ -360,18 +364,7 @@ export class PointLayer extends DataLayer {
   }
 
   _makeData() {
-    let result = [];
-    for (let point of this) {
-      let beforePoint = Object.assign({}, point);
-      let afterPoint = Object.assign({}, point);
-      beforePoint.mz -= 1e-6;
-      beforePoint.intensity = -1;
-      result.push(beforePoint);
-      result.push(point);
-      afterPoint.mz += 1e-6;
-      afterPoint.intensity = -1;
-      result.push(afterPoint);
-    }
+    const result = pointToProfile(this);
     return result;
   }
 
@@ -416,6 +409,24 @@ let neutralMass = (mz, charge) => {
   return mz * Math.abs(charge) - charge * 1.007;
 };
 
+export class LabeledPeakLayer extends PointLayer {
+  initArtist(canvas) {
+    this.line = canvas.container.append("g").attr("clip-path", "url(#clip)");
+    const points = this._makeData();
+
+    this.path = this.styleArtist(
+      this.line
+        .append("path")
+        .datum(points)
+        .attr("class", `line ${this.layerType}`)
+    );
+
+    this.path.attr("d", this.buildPath(canvas));
+    // TODO: Finish drawing text labels at axis-converted coordinates
+    // this.labels = canvas.container.selectAll('text.peak-label')
+  }
+}
+
 export class DeconvolutedLayer extends PointLayer {
   constructor(points, metadata) {
     super(points, metadata);
@@ -456,17 +467,17 @@ export class DeconvolutedLayer extends PointLayer {
     }
     let averageMz = 0;
     let totalIntensity = 0;
-    let apexPosition = 0;
+    // let apexPosition = 0;
     let apexIntensity = 0;
-    let i = 0;
+    // let i = 0;
     for (let envelopePoint of peak.envelope) {
       averageMz += envelopePoint.mz * envelopePoint.intensity;
       totalIntensity += envelopePoint.intensity;
       if (envelopePoint.intensity > apexIntensity) {
         apexIntensity = envelopePoint.intensity;
-        apexPosition = i;
+        // apexPosition = i;
       }
-      i++;
+      // i++;
     }
     const apexMz = averageMz / totalIntensity;
     const apexMzPosition = canvas.xScale(apexMz);
