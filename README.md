@@ -1,1 +1,5 @@
-An excuse to learn React while re-implementing a long-lost d3.js based spectrum drawing script.
+# `specview` - A mass spectrum viewer written in React
+
+A React component wrapping a d3-based mass spectrum viewer with interactive zoom and annotation features.
+
+Still a massive work in progress...
