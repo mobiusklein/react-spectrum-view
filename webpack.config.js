@@ -4,13 +4,13 @@ const glob = require("glob");
 
 module.exports = {
   entry: {
-    "specview.js": glob
+    "react-spectrum-view.js": glob
       .sync("./src/spectrum/*.?(js|css)")
       .map((f) => path.resolve(__dirname, f))
       .concat(["./src/lib.js"]),
   },
   output: {
-    filename: "build/static/js/specview.min.js",
+    filename: "build/static/js/react-spectrum-view.min.js",
     libraryTarget: "umd",
     library: "spectrum",
   },

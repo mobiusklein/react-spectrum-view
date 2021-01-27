@@ -86,7 +86,7 @@ def scan_to_json(scan):
     else:
         isolation_window = []
         precursor_ions = []
-        bunch = next(reader.start_from_scan(scan.id))
+        bunch = next(scan.source.start_from_scan(scan.id))
         for product in bunch.products:
             window = product.isolation_window
             if window is not None:

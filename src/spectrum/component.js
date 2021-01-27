@@ -16,7 +16,7 @@ function uuidv4() {
 export default function SpectrumCanvasComponent({ config, spectrumData }) {
   const canvasHolder = React.useRef(null);
   const [canvas, setCanvas] = React.useState(null);
-  const [canvasId, setCanvasId] = React.useState(() => uuidv4());
+  const [canvasId] = React.useState(() => uuidv4());
   React.useLayoutEffect(() => {
     if (canvasHolder.current) {
       setCanvas(new SpectrumCanvas(`#${canvasHolder.current.id}`));
