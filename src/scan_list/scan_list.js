@@ -29,6 +29,10 @@ function SpectrumGetter({ scanIndex, config, dispatch, setProgress }) {
         label="Load Scan by Index"
         variant="outlined"
         onBlur={(event) => {
+          const val = parseInt(event.target.value)
+          if (isNaN(val)) {
+            return true
+          }
           getScanByIndex(
             parseInt(event.target.value),
             config,

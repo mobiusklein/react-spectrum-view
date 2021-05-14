@@ -4,6 +4,7 @@ import {
   PrecursorPeakLayer,
   IsolationWindowLayer,
   DeconvolutedLayer,
+  LabeledPeakLayer,
 } from "./spectrum_layers.js";
 
 export function convertScanToLayers(data, config) {

@@ -92,7 +92,7 @@ function SpectrumStatusDisplay({ ...props }) {
   );
 }
 
-function SpectrumViewer({ ...props }) {
+function SpectrumViewer({ includeSpectrumList = true, dataHostURL = "http://localhost:5000/", ...props }) {
   const [ms1Averagine, setMS1Averagine] = React.useState("peptide");
   const [msnAveragine, setMSnAveragine] = React.useState("peptide");
   const [ms1ScanAveraging, setMS1ScanAveraging] = React.useState(0);
@@ -100,7 +100,7 @@ function SpectrumViewer({ ...props }) {
   const [spectrumLoadingState, setSpectrumLoadingState] = React.useState(
     "idle"
   );
-  const [dataHost, setDataHost] = React.useState("http://localhost:5000/");
+  const [dataHost, setDataHost] = React.useState(dataHostURL);
 
   const config = {
     ms1Averagine,
@@ -161,11 +161,11 @@ function SpectrumViewer({ ...props }) {
         />
       </div>
       <div>
-        <SpectrumList
+        {(includeSpectrumList === undefined ? true : includeSpectrumList) ? <SpectrumList
           config={config}
           setSpectrumData={setSpectrumData}
           spectrumLoadingProgress={setSpectrumLoadingState}
-        />
+        /> : ''}
       </div>
     </div>
   );

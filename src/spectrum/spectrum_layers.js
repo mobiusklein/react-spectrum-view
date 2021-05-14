@@ -321,6 +321,19 @@ export class ProfileLayer extends DataLayer {
     };
   }
 
+  get basePeak() {
+    let bestIndex = 0
+    let bestValue = -1
+    for(let i = 0; i < this.length; i++) {
+      let val = this.intensity[i]
+      if (val > bestValue) {
+        bestValue = val
+        bestIndex = i
+      }
+    }
+    return {mz: this.mz[bestIndex], intensity: this.intensity[bestIndex]}
+  }
+
   slice(begin, end) {
     return new ProfileLayer(
       this.mz.slice(begin, end),
@@ -349,6 +362,10 @@ export class PointLayer extends DataLayer {
     this.length = points.length;
     this.line = null;
     this.label = null;
+  }
+
+  get basePeak() {
+    return this.points.reduce((a, b) => (a.intensity > b.intensity) ? a : b)
   }
 
   get(i) {
@@ -410,6 +427,12 @@ let neutralMass = (mz, charge) => {
 };
 
 export class LabeledPeakLayer extends PointLayer {
+  constructor(points, metadata){
+    super(points, metadata)
+    this._color = this.metadata.color
+    this.seriesLabel = this.metadata.seriesLabel || 'labeled-peaks-' + Math.floor(Math.random() * 1e16)
+  }
+
   initArtist(canvas) {
     this.line = canvas.container.append("g").attr("clip-path", "url(#clip)");
     const points = this._makeData();
@@ -422,8 +445,30 @@ export class LabeledPeakLayer extends PointLayer {
     );
 
     this.path.attr("d", this.buildPath(canvas));
-    // TODO: Finish drawing text labels at axis-converted coordinates
-    // this.labels = canvas.container.selectAll('text.peak-label')
+    this._drawLabels(canvas)
+  }
+
+  _drawLabels(canvas) {
+    if(this.labels) {
+      this.labels.remove()
+    }
+    this.labels = canvas.container.selectAll(
+      `text.peak-label.${this.seriesLabel}`).data(
+        this.points).enter().append('g').attr("class", `label-${this.seriesLabel}`).attr(
+          "transform", (d) => `translate(${canvas.xScale(d.mz)},${canvas.yScale(d.intensity) - 10})`)
+      .append("text").text(d => d.label).attr("text-anchor", 'middle')
+  }
+
+  redraw(canvas) {
+    super.redraw(canvas)
+    this._drawLabels(canvas)
+  }
+
+  remove() {
+    super.remove()
+    if(this.labels){
+      this.labels.remove()
+    }
   }
 }
 
@@ -493,7 +538,7 @@ export class DeconvolutedLayer extends PointLayer {
       );
     this.patternContainer
       .append("text")
-      .text(neutralMass(peak.mz, peak.charge).toFixed(3) + `, ${peak.charge}`)
+      .text(neutralMass(peak.mz, peak.charge).toFixed(3) + `, z=${peak.charge}`)
       .style("text-anchor", "middle")
       .attr("class", "cursor-label envelope-label");
 
