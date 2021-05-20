@@ -87,7 +87,7 @@ function SpectrumStatusDisplay({ ...props }) {
       <span style={{ marginBottom: "2px" }}>
         Spectrum Process: {props.value}
       </span>{" "}
-      {props.value == "pending" && spinner}
+      {props.value === "pending" && spinner}
     </FormControl>
   );
 }
@@ -96,11 +96,11 @@ function SpectrumViewer({ includeSpectrumList = true, dataHostURL = "http://loca
   const [ms1Averagine, setMS1Averagine] = React.useState("peptide");
   const [msnAveragine, setMSnAveragine] = React.useState("peptide");
   const [ms1ScanAveraging, setMS1ScanAveraging] = React.useState(0);
-  const [dataFileKey, setDataFileKey] = React.useState(0);
+  const [dataFileKey, _setDataFileKey] = React.useState(0);
   const [spectrumLoadingState, setSpectrumLoadingState] = React.useState(
     "idle"
   );
-  const [dataHost, setDataHost] = React.useState(dataHostURL);
+  const [dataHost, _setDataHost] = React.useState(dataHostURL);
 
   const config = {
     ms1Averagine,
