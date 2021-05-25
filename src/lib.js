@@ -1,18 +1,22 @@
 import * as React from "react";
 import ReactDOM from "react-dom";
-import SpectrumCanvasComponent from "./spectrum/component";
-import { convertScanToLayers } from "./spectrum/utils";
+
 import {
-  SpectrumData,
-  DataLayer,
-  LineArtist,
-  ProfileLayer,
-  PointLayer,
-  LabeledPeakLayer,
-  DeconvolutedLayer,
-  PrecursorPeakLayer,
-  IsolationWindowLayer,
-} from "./spectrum/spectrum_layers"
+    SpectrumCanvas,
+    convertScanToLayers,
+    SpectrumData,
+    DataLayer,
+    LineArtist,
+    ProfileLayer,
+    PointLayer,
+    LabeledPeakLayer,
+    DeconvolutedLayer,
+    PrecursorPeakLayer,
+    IsolationWindowLayer,
+    Spectrum,
+    PrecursorInformation,
+    SpectrumCanvasComponent
+} from "./spectrum"
 
 export function renderSpectrum(container, spectrumData, converter) {
   if (converter === undefined) {
@@ -37,5 +41,8 @@ export {
   LabeledPeakLayer,
   DeconvolutedLayer,
   PrecursorPeakLayer,
-  IsolationWindowLayer
+  IsolationWindowLayer,
+  SpectrumCanvas,
+  Spectrum,
+  PrecursorInformation
 };
