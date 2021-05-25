@@ -17,7 +17,6 @@ export class PrecursorInformation {
 
 export class Spectrum {
     constructor(layers, scanId, msLevel, scanTime, isProfile, precursorInformation) {
-        super()
         this.layers = layers
         this.scanId = scanId
         this.msLevel = msLevel
