@@ -4,6 +4,8 @@ import ReactDOM from "react-dom";
 import {
     SpectrumCanvas,
     convertScanToLayers,
+    convertPROXIToLayers,
+    convertMSDeisotopeToLayers,
     SpectrumData,
     DataLayer,
     LineArtist,
@@ -22,7 +24,7 @@ export function renderSpectrum(container, spectrumData, converter) {
   if (converter === undefined) {
     converter = convertScanToLayers
   }
-  let spectrumDataConverted = renderSpectrum(spectrumData);
+  let spectrumDataConverted = converter(spectrumData);
   let component = (
     <SpectrumCanvasComponent spectrumData={spectrumDataConverted} config={{}} />
   );
@@ -44,5 +46,7 @@ export {
   IsolationWindowLayer,
   SpectrumCanvas,
   Spectrum,
-  PrecursorInformation
+  PrecursorInformation,
+  convertPROXIToLayers,
+  convertMSDeisotopeToLayers
 };

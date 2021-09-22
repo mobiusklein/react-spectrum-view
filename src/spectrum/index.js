@@ -1,4 +1,4 @@
-import { SpectrumCanvas } from "./spectrum_canvas"
+import SpectrumCanvas from "./spectrum_canvas"
 import {
     SpectrumData,
     DataLayer,
@@ -10,10 +10,10 @@ import {
     PrecursorPeakLayer,
     IsolationWindowLayer,
 } from "./spectrum_layers"
-import { convertScanToLayers } from "./utils";
+import { convertScanToLayers, convertPROXIToLayers, convertMSDeisotopeToLayers } from "./utils";
 import { Spectrum, PrecursorInformation } from "./spectrum"
-import { SpectrumCanvasComponent } from "./component"
-
+import SpectrumCanvasComponent from "./component"
+console.log("SpectrumCanvasComponent", SpectrumCanvasComponent)
 export {
     SpectrumCanvas,
     convertScanToLayers,
@@ -28,5 +28,7 @@ export {
     IsolationWindowLayer,
     Spectrum,
     PrecursorInformation,
-    SpectrumCanvasComponent
+    SpectrumCanvasComponent,
+    convertPROXIToLayers,
+    convertMSDeisotopeToLayers
 };

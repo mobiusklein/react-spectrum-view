@@ -118,7 +118,7 @@ export default class SpectrumCanvas {
       0,
       Math.min.apply(
         null,
-        this.layers.map((d) => d.minMz())
+        this.layers.map((d) => d.minMz()).filter(value => (value !== undefined) && !Number.isNaN(value))
       ) - 50
     );
   }
@@ -129,7 +129,7 @@ export default class SpectrumCanvas {
     }
     return Math.max.apply(
       null,
-      this.layers.map((d) => d.maxMz())
+      this.layers.map((d) => d.maxMz()).filter(value => (value !== undefined) && !Number.isNaN(value))
     );
   }
 
@@ -139,7 +139,7 @@ export default class SpectrumCanvas {
     }
     return Math.min.apply(
       null,
-      this.layers.map((d) => d.minIntensity())
+      this.layers.map((d) => d.minIntensity()).filter(value => (value !== undefined) && !Number.isNaN(value))
     );
   }
 

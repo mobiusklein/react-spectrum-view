@@ -480,6 +480,10 @@ export class DeconvolutedLayer extends PointLayer {
     this.patternColor = null;
   }
 
+  get layerType() {
+    return "deconvoluted-layer";
+  }
+
   onHover(canvas, cursorInfo) {
     super.onHover(canvas, cursorInfo);
     const mz = cursorInfo.mz;

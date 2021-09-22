@@ -54,6 +54,48 @@ export function convertPROXIToLayers(data, config) {
   return newState
 }
 
+export function convertMSDeisotopeToLayers(data, config) {
+  const newState = Object.assign({});
+  newState.layers = [];
+  if (data.arrays !== undefined && data.arrays.mz !== undefined && data.arrays.mz.length > 0) {
+    layer = new ProfileLayer(data.arrays.mz, data.arrays.intensity);
+  }
+  if (data.peak_set !== undefined && data.peak_set.length > 0) {
+    let pointLayer = new PointLayer(data.peak_set);
+    newState.layers.push(pointLayer);
+  }
+  if (data.deconvoluted_peak_set !== undefined && data.deconvoluted_peak_set.length > 0) {
+    let deconvolutedPeaks = new DeconvolutedLayer(data.deconvoluted_peak_set);
+    newState.layers.push(deconvolutedPeaks);
+  }
+  if (data.precursor_information) {
+    if (data.ms_level > 1) {
+      let precursorLayer = new PrecursorPeakLayer({
+        mz: data.precursor_information.mz,
+        charge: data.precursor_information.charge,
+        intensity: newState.layers[0].maxIntensity(),
+      });
+      newState.layers.push(precursorLayer);
+    } else {
+      let precursorLayer = new PointLayer(data.precursor_information);
+      newState.layers.push(precursorLayer);
+    }
+  }
+  newState.scanId = data.id;
+  newState.msLevel = data.ms_level;
+  newState.scanTime = data.scan_time;
+  newState.isProfile = data.is_profile;
+  if (data.precursor_information) {
+    newState.precursorInformation = {
+      mz: data.precursor_information.mz,
+      charge: data.precursor_information.charge,
+      intensity: data.precursor_information.intensity,
+      precursorId: data.precursor_information.scan_id,
+    };
+  }
+  return newState;
+}
+
 export function convertScanToLayers(data, config) {
   let layer;
   if (data.is_profile) {
