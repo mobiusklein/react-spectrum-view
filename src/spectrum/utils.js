@@ -7,6 +7,53 @@ import {
   LabeledPeakLayer,
 } from "./spectrum_layers.js";
 
+export function convertPROXIToLayers(data, config) {
+  const mzArray = data['m/z array'];
+  const intensityArray = data['intensity array']
+  let layer = new PointLayer(
+    Array.from(new ProfileLayer(mzArray, intensityArray))
+  );
+  const newState = Object.assign({
+    scanId: "",
+    scanNumber: 0,
+    precursorInformation: {},
+    msLevel: 2,
+    layers: [layer],
+  });
+
+  const attributes = data['attributes']
+  if (attributes) {
+    for(let attrib of attributes) {
+      switch (attrib.name) {
+        case "ms level":
+          newState.msLevel = attrib.value
+          break
+        case "scan number":
+          newState.scanNumber = attrib.value
+          break
+        case "spectrum name":
+          newState.scanId = attrib.value
+          break
+        case "isolation window target m/z":
+          newState.precursorInformation.mz = attrib.value
+          break
+        case "charge state":
+          newState.precursorInformation.charge = attrib.value
+          break
+      }
+    }
+  }
+  if (newState.precursorInformation.mz) {
+    let precursorLayer = new PrecursorPeakLayer({
+      mz: newState.precursorInformation.mz,
+      charge: data.precursorInformation.charge ? data.precursorInformation.charge : 1,
+      intensity: newState.layers[0].maxIntensity(),
+    });
+    newState.layers.push(precursorLayer);
+  }
+  return newState
+}
+
 export function convertScanToLayers(data, config) {
   let layer;
   if (data.is_profile) {
