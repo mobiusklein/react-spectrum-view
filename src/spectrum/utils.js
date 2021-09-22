@@ -58,7 +58,11 @@ export function convertMSDeisotopeToLayers(data, config) {
   const newState = Object.assign({});
   newState.layers = [];
   if (data.arrays !== undefined && data.arrays.mz !== undefined && data.arrays.mz.length > 0) {
-    layer = new ProfileLayer(data.arrays.mz, data.arrays.intensity);
+    newState.layers.push(new ProfileLayer(data.arrays.mz, data.arrays.intensity));
+  }
+  if (!data.is_profile && data.peak_set === undefined && data.arrays !== undefined && data.arrays.mz.length > 0) {
+    newState.layers.push(
+      new PointLayer(Array.from(new ProfileLayer(data.arrays.mz, data.arrays.intensity))));
   }
   if (data.peak_set !== undefined && data.peak_set.length > 0) {
     let pointLayer = new PointLayer(data.peak_set);
