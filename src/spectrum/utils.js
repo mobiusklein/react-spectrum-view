@@ -46,7 +46,7 @@ export function convertPROXIToLayers(data, config) {
   if (newState.precursorInformation.mz) {
     let precursorLayer = new PrecursorPeakLayer({
       mz: newState.precursorInformation.mz,
-      charge: data.precursorInformation.charge ? data.precursorInformation.charge : 1,
+      charge: newState.precursorInformation.charge ? newState.precursorInformation.charge : 1,
       intensity: newState.layers[0].maxIntensity(),
     });
     newState.layers.push(precursorLayer);
