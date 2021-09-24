@@ -13,7 +13,7 @@ import {
 import { convertScanToLayers, convertPROXIToLayers, convertMSDeisotopeToLayers } from "./utils";
 import { Spectrum, PrecursorInformation } from "./spectrum"
 import SpectrumCanvasComponent from "./component"
-console.log("SpectrumCanvasComponent", SpectrumCanvasComponent)
+
 export {
     SpectrumCanvas,
     convertScanToLayers,
