@@ -147,6 +147,15 @@ export class SpectrumData {
     return 0;
   }
 
+  matchMz(mz, errorTolerance) {
+    let i = self.searchMz(mz)
+    let pt = self.get(i)
+    if (Math.abs(pt.mz - mz) / mz < errorTolerance) {
+      return pt
+    }
+    return null
+  }
+
   slice(begin, end) {
     throw new Error("Not Implemented");
   }
@@ -161,6 +170,18 @@ export class DataLayer extends SpectrumData {
     super();
     this.metadata = metadata;
     this._color = null;
+  }
+
+  sortMz() {
+    return Array.from(this.points).sort((a, b) => {
+      if (a.mz < b.mz) {
+        return -1;
+      } else if (a.mz > b.mz) {
+        return 1;
+      } else {
+        return 0;
+      }
+    })
   }
 
   get color() {
@@ -246,15 +267,7 @@ export class LineArtist extends SpectrumData {
   constructor(points, metadata) {
     super();
     this.points = points;
-    this.points.sort((a, b) => {
-      if (a.mz < b.mz) {
-        return -1;
-      } else if (a.mz > b.mz) {
-        return 1;
-      } else {
-        return 0;
-      }
-    });
+    this.points = this.sortMz()
     this.length = points.length;
     this.line = null;
     this.label = metadata.label ? metadata.label : "";
@@ -422,11 +435,133 @@ export class PointLayer extends DataLayer {
   }
 }
 
-let neutralMass = (mz, charge) => {
+const neutralMass = (mz, charge) => {
   return mz * Math.abs(charge) - charge * 1.007;
 };
 
-export class LabeledPeakLayer extends PointLayer {
+const pointNeutralMass = (point) => {
+  neutralMass(point.mz, point.charge)
+}
+
+export class NeutralMassPointLayer extends PointLayer {
+  constructor(points, metadata) {
+    super(points, metadata)
+    this.pointsByMass = this.sortMass()
+  }
+
+  sortMass() {
+    return Array.from(this.points).sort((a, b) => {
+      if (pointNeutralMass(a) < pointNeutralMass(b)) {
+        return -1;
+      } else if (pointNeutralMass(a) > pointNeutralMass(b)) {
+        return 1;
+      } else {
+        return 0;
+      }
+    })
+  }
+
+  maxMass() {
+    return pointNeutralMass(this.pointsByMass[this.pointsByMass.length - 1])
+  }
+
+  minMass() {
+    return pointNeutralMass(this.pointsByMass[0])
+  }
+
+  getOverMass(i) {
+    return this.pointsByMass[i]
+  }
+
+  searchMass(mass) {
+    if (mz > this.maxMass()) {
+      return this.length - 1;
+    } else if (mz < this.minMass()) {
+      return 0;
+    }
+    let lo = 0;
+    let hi = this.length - 1;
+
+    while (hi !== lo) {
+      let mid = Math.trunc((hi + lo) / 2);
+      let value = pointNeutralMass(this.getOverMass(mid));
+      let diff = value - mz;
+      if (Math.abs(diff) < 1e-3) {
+        let bestIndex = mid;
+        let bestError = Math.abs(diff);
+        let i = mid;
+        while (i > -1) {
+          value = pointNeutralMass(this.getOverMass(i));
+          diff = Math.abs(value - mz);
+          if (diff < bestError) {
+            bestIndex = i;
+            bestError = diff;
+          } else {
+            break;
+          }
+          i--;
+        }
+        i = mid + 1;
+        while (i < this.length) {
+          value = pointNeutralMass(this.getOverMass(i));
+          diff = Math.abs(value - mz);
+          if (diff < bestError) {
+            bestIndex = i;
+            bestError = diff;
+          } else {
+            break;
+          }
+          i++;
+        }
+        return bestIndex;
+      } else if (hi - lo === 1) {
+        let bestIndex = mid;
+        let bestError = Math.abs(diff);
+        let i = mid;
+        while (i > -1) {
+          value = pointNeutralMass(this.getOverMass(i));
+          diff = Math.abs(value - mz);
+          if (diff < bestError) {
+            bestIndex = i;
+            bestError = diff;
+          } else {
+            break;
+          }
+          i--;
+        }
+        i = mid + 1;
+        while (i < this.length) {
+          value = pointNeutralMass(this.getOverMass(i));
+          diff = Math.abs(value - mz);
+          if (diff < bestError) {
+            bestIndex = i;
+            bestError = diff;
+          } else {
+            break;
+          }
+          i++;
+        }
+        return bestIndex;
+      } else if (diff > 0) {
+        hi = mid;
+      } else {
+        lo = mid;
+      }
+    }
+    return 0;
+  }
+
+  matchMass(mass, errorTolerance) {
+    let i = self.searchMass(mass)
+    let pt = self.getOverMass(i)
+    if (Math.abs(pointNeutralMass(pt) - mass) / mass < errorTolerance) {
+      return pt
+    }
+    return null
+  }
+}
+
+export class LabeledPeakLayer extends NeutralMassPointLayer {
   constructor(points, metadata){
     super(points, metadata)
     this._color = this.metadata.color
@@ -472,7 +607,7 @@ export class LabeledPeakLayer extends PointLayer {
   }
 }
 
-export class DeconvolutedLayer extends PointLayer {
+export class DeconvolutedLayer extends NeutralMassPointLayer {
   constructor(points, metadata) {
     super(points, metadata);
     this.patternContainer = null;
