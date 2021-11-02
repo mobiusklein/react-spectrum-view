@@ -148,8 +148,8 @@ export class SpectrumData {
   }
 
   matchMz(mz, errorTolerance) {
-    let i = self.searchMz(mz)
-    let pt = self.get(i)
+    let i = this.searchMz(mz)
+    let pt = this.get(i)
     if (Math.abs(pt.mz - mz) / mz < errorTolerance) {
       return pt
     }
@@ -474,9 +474,9 @@ export class NeutralMassPointLayer extends PointLayer {
   }
 
   searchMass(mass) {
-    if (mz > this.maxMass()) {
+    if (mass > this.maxMass()) {
       return this.length - 1;
-    } else if (mz < this.minMass()) {
+    } else if (mass < this.minMass()) {
       return 0;
     }
     let lo = 0;
@@ -485,14 +485,14 @@ export class NeutralMassPointLayer extends PointLayer {
     while (hi !== lo) {
       let mid = Math.trunc((hi + lo) / 2);
       let value = pointNeutralMass(this.getOverMass(mid));
-      let diff = value - mz;
+      let diff = value - mass;
       if (Math.abs(diff) < 1e-3) {
         let bestIndex = mid;
         let bestError = Math.abs(diff);
         let i = mid;
         while (i > -1) {
           value = pointNeutralMass(this.getOverMass(i));
-          diff = Math.abs(value - mz);
+          diff = Math.abs(value - mass);
           if (diff < bestError) {
             bestIndex = i;
             bestError = diff;
@@ -504,7 +504,7 @@ export class NeutralMassPointLayer extends PointLayer {
         i = mid + 1;
         while (i < this.length) {
           value = pointNeutralMass(this.getOverMass(i));
-          diff = Math.abs(value - mz);
+          diff = Math.abs(value - mass);
           if (diff < bestError) {
             bestIndex = i;
             bestError = diff;
@@ -520,7 +520,7 @@ export class NeutralMassPointLayer extends PointLayer {
         let i = mid;
         while (i > -1) {
           value = pointNeutralMass(this.getOverMass(i));
-          diff = Math.abs(value - mz);
+          diff = Math.abs(value - mass);
           if (diff < bestError) {
             bestIndex = i;
             bestError = diff;
@@ -532,7 +532,7 @@ export class NeutralMassPointLayer extends PointLayer {
         i = mid + 1;
         while (i < this.length) {
           value = pointNeutralMass(this.getOverMass(i));
-          diff = Math.abs(value - mz);
+          diff = Math.abs(value - mass);
           if (diff < bestError) {
             bestIndex = i;
             bestError = diff;
