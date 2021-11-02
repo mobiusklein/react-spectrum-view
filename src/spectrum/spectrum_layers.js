@@ -552,8 +552,8 @@ export class NeutralMassPointLayer extends PointLayer {
   }
 
   matchMass(mass, errorTolerance) {
-    let i = self.searchMass(mass)
-    let pt = self.getOverMass(i)
+    let i = this.searchMass(mass)
+    let pt = this.getOverMass(i)
     if (Math.abs(pointNeutralMass(pt) - mass) / mass < errorTolerance) {
       return pt
     }
