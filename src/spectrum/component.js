@@ -26,14 +26,14 @@ export default function SpectrumCanvasComponent({ config, spectrumData }) {
   React.useEffect(() => {
     if (canvas === null) return;
     if (canvas.layers !== spectrumData.layers) {
-      let extent = canvas.extentMzInterval;
+      let extent = canvas.extentCoordinateInterval;
       if (canvas.layers.length) {
         canvas.clear();
       }
       canvas.addLayers(spectrumData.layers);
       canvas.render();
       if (!(extent[0] === 0 && extent[1] === 0)) {
-        canvas.setExtentByMz(...extent);
+        canvas.setExtentByCoordinate(...extent);
       }
     }
   }, [spectrumData, canvas]);

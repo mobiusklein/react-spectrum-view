@@ -55,6 +55,14 @@ export class SpectrumData {
     return point.mz;
   }
 
+  minCoordinate() {
+    return this.minMz()
+  }
+
+  maxCoordinate() {
+    return this.maxMz()
+  }
+
   maxIntensity() {
     let maxValue = 0;
     for (let point of this) {

@@ -46,7 +46,36 @@ class ColorCycle {
   }
 }
 
-export default class SpectrumCanvas {
+
+class CanvasBase {
+  addLayer(layer) {
+    this.layers.push(layer);
+    if (this.container) {
+      layer.initArtist(this);
+      this.render();
+    }
+  }
+
+  addLayers(layers) {
+    for (let layer of layers) {
+      this.layers.push(layer);
+      if (this.container) {
+        layer.initArtist(this);
+      }
+    }
+    this.updateCoordinateInterval()
+    if (this.container) {
+      this.render();
+    }
+  }
+
+  updateCoordinateInterval() {
+    this.extentCoordinateInterval = [this.minCoordinate(), this.maxCoordinate()];
+  }
+}
+
+
+export default class SpectrumCanvas extends CanvasBase {
   constructor(containerSelector, width, height, margins, colors) {
     console.log("Creating a Canvas");
     this.containerSelector = containerSelector;
@@ -80,34 +109,13 @@ export default class SpectrumCanvas {
     this.layers = [];
     this.colorCycle = new ColorCycle(colors);
 
-    this.extentMzInterval = [this.minMz(), this.maxMz()];
-  }
-
-  addLayer(layer) {
-    this.layers.push(layer);
-    if (this.container) {
-      layer.initArtist(this);
-      this.render();
-    }
-  }
-
-  addLayers(layers) {
-    for (let layer of layers) {
-      this.layers.push(layer);
-      if (this.container) {
-        layer.initArtist(this);
-      }
-    }
-    this.extentMzInterval = [this.minMz(), this.maxMz()];
-    if (this.container) {
-      this.render();
-    }
+    this.extentCoordinateInterval = this.updateCoordinateInterval();
   }
 
   clear() {
     this.remove();
     this.layers = [];
-    this.extentMzInterval = [0, 0];
+    this.extentCoordinateInterval = [0, 0];
   }
 
   minMz() {
@@ -123,6 +131,10 @@ export default class SpectrumCanvas {
     );
   }
 
+  minCoordinate() {
+    return this.minMz()
+  }
+
   maxMz() {
     if (this.layers.length === 0) {
       return 0;
@@ -131,6 +143,10 @@ export default class SpectrumCanvas {
       null,
       this.layers.map((d) => d.maxMz()).filter(value => (value !== undefined) && !Number.isNaN(value))
     );
+  }
+
+  maxCoordinate() {
+    return this.maxMz()
   }
 
   minIntensity() {
@@ -153,10 +169,10 @@ export default class SpectrumCanvas {
     );
   }
 
-  maxIntensityBetween(lowMz, highMz) {
+  maxIntensityBetween(low, high) {
     return Math.max.apply(
       null,
-      this.layers.map((layer) => layer.between(lowMz, highMz).maxIntensity())
+      this.layers.map((layer) => layer.between(low, high).maxIntensity())
     );
   }
 
@@ -313,16 +329,16 @@ export default class SpectrumCanvas {
     this.idleTimeout = null;
   }
 
-  setExtentByMz(minMz, maxMz) {
-    if (minMz === undefined) {
-      minMz = this.minMz();
+  setExtentByCoordinate(minCoordinate, maxCoordinate) {
+    if (minCoordinate === undefined) {
+      minCoordinate = this.minCoordinate();
     }
-    if (maxMz === undefined) {
-      maxMz = this.maxMz();
+    if (maxCoordinate === undefined) {
+      maxCoordinate = this.maxCoordinate();
     }
-    const maxIntensity = this.maxIntensityBetween(minMz, maxMz) + 100.0;
-    this.extentMzInterval = [minMz, maxMz];
-    this.xScale.domain([minMz, maxMz]);
+    const maxIntensity = this.maxIntensityBetween(minCoordinate, maxCoordinate) + 100.0;
+    this.extentCoordinateInterval = [minCoordinate, maxCoordinate];
+    this.xScale.domain([minCoordinate, maxCoordinate]);
     this.yScale.domain([0, maxIntensity * 1.05]);
     this.xAxis.transition().duration(100).call(d3.axisBottom(this.xScale));
     this.yAxis.transition().duration(100).call(d3.axisLeft(this.yScale));
@@ -337,11 +353,11 @@ export default class SpectrumCanvas {
         this.idleTimeout = setTimeout(() => this._idled(), 350);
         return this.idleTimeout;
       }
-      this.setExtentByMz(this.minMz(), this.maxMz());
+      this.setExtentByCoordinate(this.minCoordinate(), this.maxCoordinate());
     } else {
-      const minMz = this.xScale.invert(extent[0]);
-      const maxMz = this.xScale.invert(extent[1]);
-      this.setExtentByMz(minMz, maxMz);
+      const minCoordinate = this.xScale.invert(extent[0]);
+      const maxCoordinate = this.xScale.invert(extent[1]);
+      this.setExtentByCoordinate(minCoordinate, maxCoordinate);
     }
   }
 
