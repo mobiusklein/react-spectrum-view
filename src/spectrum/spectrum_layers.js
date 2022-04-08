@@ -2,6 +2,38 @@ import * as d3 from "d3";
 
 const defaultColor = "steelblue";
 
+
+function diff(x) {
+  const diffs = []
+  for(let i = 1; i < x.length; i++ ) {
+    diffs.push(x[i] - x[i - 1])
+  }
+  return diffs
+}
+
+
+const sum = (x) => x.reduce((a, v) => v + a, 0)
+
+const mean = (x) => sum(x) / x.length
+
+const subsampleResolutionSpacing = (x, desiredResolution) => {
+  const keptIndices = [0]
+
+  for(let i = 1; i < x.length; i++) {
+    if ((x[i] - x[keptIndices[keptIndices.length - 1]]) > desiredResolution) {
+      keptIndices.push(i)
+    }
+  }
+  if (keptIndices[keptIndices.length - 1] != x.length - 1) {
+    keptIndices.push(x.length - 1)
+  }
+  return keptIndices
+}
+
+
+const arrayMask = (x, ii) => ii.map(i => x[i])
+
+
 function pointToProfile(points) {
   const result = [];
   for (const point of points) {
@@ -282,6 +314,18 @@ export class LineArtist extends SpectrumData {
     this.color = metadata.color ? metadata.color : defaultColor;
   }
 
+  sortMz() {
+    return Array.from(this.points).sort((a, b) => {
+      if (a.mz < b.mz) {
+        return -1;
+      } else if (a.mz > b.mz) {
+        return 1;
+      } else {
+        return 0;
+      }
+    })
+  }
+
   get(i) {
     return this.points[i];
   }
@@ -329,10 +373,29 @@ export class LineArtist extends SpectrumData {
 export class ProfileLayer extends DataLayer {
   constructor(mz, intensity, metadata) {
     super(metadata);
-    this.mz = mz;
+    this.subsample = false
+    if(mz.length > 5e4) {
+      this.subsample = true
+    }
     this.length = mz.length;
+    this.mz = mz;
     this.intensity = intensity;
     this.line = null;
+    console.log(this)
+  }
+
+  _makeData() {
+    if (this.subsample) {
+      const spacing = subsampleResolutionSpacing(this.mz, 0.005)
+      const subsampledMz = arrayMask(this.mz, spacing)
+      const subsampledIntensity = arrayMask(this.intensity, spacing)
+      console.log(`Subsampling ${this.length} to ${subsampledMz.length} (${subsampledMz.length / this.length})`)
+      return subsampledMz.map((mz, i) => {
+        return {"mz": mz, "intensity": subsampledIntensity[i]}
+      })
+    } else {
+      return this.asArray();
+    }
   }
 
   get(i) {
