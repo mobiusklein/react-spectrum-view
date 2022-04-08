@@ -77,6 +77,7 @@ class CanvasBase {
 
 export default class SpectrumCanvas extends CanvasBase {
   constructor(containerSelector, width, height, margins, colors) {
+    super()
     console.log("Creating a Canvas");
     this.containerSelector = containerSelector;
 
