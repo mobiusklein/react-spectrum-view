@@ -32,8 +32,10 @@ export default function SpectrumCanvasComponent({ config, spectrumData }) {
       }
       canvas.addLayers(spectrumData.layers);
       canvas.render();
-      if (!(extent[0] === 0 && extent[1] === 0)) {
-        canvas.setExtentByCoordinate(...extent);
+      if (extent !== undefined){
+        if (!(extent[0] === 0 && extent[1] === 0)) {
+          canvas.setExtentByCoordinate(...extent);
+        }
       }
     }
   }, [spectrumData, canvas]);
